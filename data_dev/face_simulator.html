@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nightscout Clock Face Simulator</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#111;color:#e0e0e0;font-family:-apple-system,system-ui,sans-serif;padding:24px;display:flex;flex-direction:column;align-items:center}
+h1{font-size:18px;margin-bottom:4px}
+.sub{font-size:13px;color:#888;margin-bottom:24px}
+.clock-frame{background:#222;border-radius:12px;padding:20px 24px;margin-bottom:24px;box-shadow:0 4px 24px rgba(0,0,0,0.5)}
+.matrix{display:grid;grid-template-columns:repeat(32,1fr);grid-template-rows:repeat(8,1fr);gap:1px;width:384px;height:96px}
+.px{width:11px;height:11px;border-radius:1px;background:#1a1a1a;transition:background .15s}
+.controls{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;justify-content:center}
+.face-btn{background:#2a2a2a;color:#888;border:1px solid #333;padding:8px 16px;cursor:pointer;font-size:13px;border-radius:0}
+.face-btn.active{color:#fff;border-color:#e0e0e0;font-weight:600}
+.face-btn:hover{color:#bbb}
+.info{font-size:13px;color:#666;text-align:center;max-width:400px;margin-top:8px}
+.nav{display:flex;gap:8px;margin-bottom:16px}
+.nav-btn{background:#333;color:#e0e0e0;border:none;padding:8px 20px;cursor:pointer;font-size:14px}
+.nav-btn:active{background:#555}
+.settings{margin-top:16px;display:flex;gap:16px;align-items:center}
+.settings label{font-size:13px;color:#888}
+.settings input{background:#2a2a2a;border:1px solid #444;color:#fff;padding:4px 8px;width:60px;font-size:14px}
+</style>
+</head>
+<body>
+<h1>Nightscout Clock Display Simulator</h1>
+<p class="sub">32 x 8 LED matrix &mdash; Ulanzi TC001</p>
+
+<div class="settings">
+<label>BG: <input type="number" id="bg_val" value="127" min="40" max="400"></label>
+<label>Trend: <select id="trend_val">
+<option value="flat">Flat &rarr;</option>
+<option value="up">Rising &nearr;</option>
+<option value="down">Falling &searr;</option>
+<option value="up2">Rising fast &uarr;</option>
+<option value="down2">Falling fast &darr;</option>
+</select></label>
+<label>Temp: <input type="number" id="temp_val" value="72" min="0" max="120">&deg;F</label>
+</div>
+
+<div style="height:16px"></div>
+
+<div class="clock-frame">
+<div class="matrix" id="matrix"></div>
+</div>
+
+<div class="nav">
+<button class="nav-btn" id="btn_prev">&lt; Prev</button>
+<button class="nav-btn" id="btn_next">Next &gt;</button>
+</div>
+
+<div class="controls" id="face_buttons"></div>
+<p class="info" id="face_desc"></p>
+
+<script>
+const W=32,H=8;
+const C={
+    black:'#1a1a1a',green:'#00cc44',red:'#ff2222',yellow:'#cccc00',
+    white:'#e0e0e0',gray:'#666666',blue:'#2244ff',cyan:'#00cccc',
+    orange:'#cc8800'
+};
+
+// Create matrix
+const matrix=document.getElementById('matrix');
+const pixels=[];
+for(let y=0;y<H;y++){
+    pixels[y]=[];
+    for(let x=0;x<W;x++){
+        const px=document.createElement('div');
+        px.className='px';
+        matrix.appendChild(px);
+        pixels[y][x]=px;
+    }
+}
+
+function clear(){for(let y=0;y<H;y++)for(let x=0;x<W;x++)pixels[y][x].style.background=C.black}
+function setPixel(x,y,color){if(x>=0&&x<W&&y>=0&&y<H)pixels[y][x].style.background=color}
+
+// Simple 3x5 font for digits
+const FONT={
+'0':['111','101','101','101','111'],
+'1':['010','110','010','010','111'],
+'2':['111','001','111','100','111'],
+'3':['111','001','111','001','111'],
+'4':['101','101','111','001','001'],
+'5':['111','100','111','001','111'],
+'6':['111','100','111','101','111'],
+'7':['111','001','010','010','010'],
+'8':['111','101','111','101','111'],
+'9':['111','101','111','001','111'],
+'-':['000','000','111','000','000'],
+'.':['000','000','000','000','100'],
+':':['000','010','000','010','000'],
+' ':['000','000','000','000','000'],
+};
+// Larger 5x7 font for big text
+const BIGFONT={
+'0':['01110','10001','10001','10001','10001','10001','01110'],
+'1':['00100','01100','00100','00100','00100','00100','01110'],
+'2':['01110','10001','00001','00110','01000','10000','11111'],
+'3':['01110','10001','00001','00110','00001','10001','01110'],
+'4':['00010','00110','01010','10010','11111','00010','00010'],
+'5':['11111','10000','11110','00001','00001','10001','01110'],
+'6':['01110','10000','11110','10001','10001','10001','01110'],
+'7':['11111','00001','00010','00100','01000','01000','01000'],
+'8':['01110','10001','10001','01110','10001','10001','01110'],
+'9':['01110','10001','10001','01111','00001','00001','01110'],
+};
+
+function drawChar(ch,x,y,color,big){
+    const font=big?BIGFONT:FONT;
+    const rows=font[ch];
+    if(!rows)return;
+    for(let r=0;r<rows.length;r++){
+        for(let c=0;c<rows[r].length;c++){
+            if(rows[r][c]==='1')setPixel(x+c,y-rows.length+1+r,color);
+        }
+    }
+    return big?(rows[0]||'').length+1:(rows[0]||'').length+1;
+}
+
+function drawText(str,x,y,color,big){
+    let cx=x;
+    for(const ch of str){cx+=drawChar(ch,cx,y,color,big)||4;}
+}
+
+function drawTextRight(str,x,y,color,big){
+    const charW=big?6:4;
+    const totalW=str.length*charW-1;
+    drawText(str,x-totalW,y,color,big);
+}
+
+function getBgColor(val){
+    if(val<55)return C.red;
+    if(val<70)return C.yellow;
+    if(val<=180)return C.green;
+    if(val<=250)return C.yellow;
+    return C.red;
+}
+
+function getTrendArrow(trend){
+    return{flat:'→',up:'↗',down:'↘',up2:'↑',down2:'↓'}[trend]||'→';
+}
+
+function drawTrendLine(x,trend,color){
+    if(trend==='flat'){setPixel(x,3,color);setPixel(x,4,color)}
+    else if(trend==='up'){setPixel(x,2,color);setPixel(x,3,color)}
+    else if(trend==='down'){setPixel(x,4,color);setPixel(x,5,color)}
+    else if(trend==='up2'){setPixel(x,1,color);setPixel(x,2,color);setPixel(x,3,color)}
+    else if(trend==='down2'){setPixel(x,4,color);setPixel(x,5,color);setPixel(x,6,color)}
+}
+
+function drawTimerBlocks(x,w,color){
+    const blocks=3;
+    const bw=Math.floor((w-4)/5);
+    for(let i=0;i<blocks;i++){
+        for(let j=0;j<bw;j++)setPixel(x+i*(bw+1)+j,7,color);
+    }
+}
+
+// Graph data (simulated last 30 readings)
+function generateGraph(currentBg){
+    const data=[];
+    let v=currentBg-20+Math.random()*10;
+    for(let i=0;i<30;i++){
+        v+=Math.random()*8-4;
+        v=Math.max(50,Math.min(300,v));
+        data.push(v);
+    }
+    data.push(currentBg);
+    return data;
+}
+
+function drawGraph(data,x,w,yOff,h,color){
+    const min=Math.min(...data)-10;
+    const max=Math.max(...data)+10;
+    const range=max-min||1;
+    const step=Math.max(1,Math.floor(data.length/w));
+    for(let i=0;i<w;i++){
+        const idx=Math.min(data.length-1,Math.floor(i*data.length/w));
+        const val=data[idx];
+        const py=yOff+h-1-Math.round((val-min)/range*(h-1));
+        setPixel(x+i,py,color);
+    }
+}
+
+const bg=()=>parseInt(document.getElementById('bg_val').value)||127;
+const trend=()=>document.getElementById('trend_val').value;
+const temp=()=>parseInt(document.getElementById('temp_val').value)||72;
+
+const faces=[
+{name:'Simple',desc:'BG reading with trend indicator',draw(){
+    const v=bg(),color=getBgColor(v);
+    drawTextRight(String(v),30,6,color);
+    drawTrendLine(31,trend(),color);
+    drawTimerBlocks(0,16,C.green);
+}},
+{name:'Full graph',desc:'30-minute BG trend graph, full width',draw(){
+    const data=generateGraph(bg());
+    drawGraph(data,0,32,0,7,getBgColor(bg()));
+    drawTimerBlocks(0,32,C.green);
+}},
+{name:'Graph and BG',desc:'BG graph on left, reading on right',draw(){
+    const v=bg(),color=getBgColor(v);
+    const data=generateGraph(v);
+    drawGraph(data,0,18,0,7,color);
+    drawTextRight(String(v),30,6,color);
+    drawTrendLine(31,trend(),color);
+    drawTimerBlocks(18,14,C.green);
+}},
+{name:'Big text',desc:'Large BG number across full display',draw(){
+    const v=bg(),color=getBgColor(v);
+    const s=String(v);
+    const totalW=s.length*6-1;
+    const startX=Math.floor((32-totalW)/2);
+    drawText(s,startX,7,color,true);
+}},
+{name:'Value and diff',desc:'BG reading with change since last reading',draw(){
+    const v=bg(),color=getBgColor(v);
+    drawText(String(v),0,6,color);
+    const diff=trend()==='up'?'+5':trend()==='down'?'-8':'+1';
+    drawTextRight(diff,30,6,C.gray);
+    drawTimerBlocks(0,32,C.green);
+}},
+{name:'Clock and value',desc:'Current time on left, BG on right',draw(){
+    const now=new Date();
+    const h=String(now.getHours()).padStart(2,'0');
+    const m=String(now.getMinutes()).padStart(2,'0');
+    drawText(h,0,6,C.white);
+    drawText(m,9,6,C.white);
+    const v=bg(),color=getBgColor(v);
+    drawTextRight(String(v),30,6,color);
+    drawTrendLine(31,trend(),color);
+    drawTimerBlocks(0,32,C.green);
+}},
+{name:'Room temp',desc:'Indoor temperature (SHT31 sensor) + BG reading',draw(){
+    const t=temp();
+    let tColor=C.green;
+    if(t<65)tColor=C.cyan;
+    else if(t>85)tColor=C.red;
+    else if(t>80)tColor=C.yellow;
+    drawText(String(t),0,6,tColor);
+    const v=bg(),color=getBgColor(v);
+    drawTextRight(String(v),30,6,color);
+    drawTrendLine(31,trend(),color);
+    // Humidity bar
+    const hum=14;
+    for(let i=0;i<hum;i++)setPixel(i,7,C.blue);
+    drawTimerBlocks(18,14,C.green);
+}},
+{name:'Weather',desc:'Outdoor temperature (Open-Meteo) + BG reading',draw(){
+    const t=temp()-5; // outdoor slightly cooler
+    let tColor=C.yellow; // clear sky
+    drawText(String(t),0,6,tColor);
+    // Weather indicator dots
+    for(let i=0;i<3;i++)setPixel(i,7,tColor);
+    const v=bg(),color=getBgColor(v);
+    drawTextRight(String(v),30,6,color);
+    drawTrendLine(31,trend(),color);
+    drawTimerBlocks(18,14,C.green);
+}},
+];
+
+let currentFace=0;
+
+function renderFace(idx){
+    clear();
+    currentFace=idx;
+    faces[idx].draw();
+    document.getElementById('face_desc').textContent=`#${idx}: ${faces[idx].name} — ${faces[idx].desc}`;
+    document.querySelectorAll('.face-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
+}
+
+// Build face buttons
+const btnContainer=document.getElementById('face_buttons');
+faces.forEach((f,i)=>{
+    const btn=document.createElement('button');
+    btn.className='face-btn';
+    btn.textContent=`${i}: ${f.name}`;
+    btn.onclick=()=>renderFace(i);
+    btnContainer.appendChild(btn);
+});
+
+document.getElementById('btn_prev').onclick=()=>renderFace((currentFace-1+faces.length)%faces.length);
+document.getElementById('btn_next').onclick=()=>renderFace((currentFace+1)%faces.length);
+
+// Re-render on settings change
+document.getElementById('bg_val').oninput=()=>renderFace(currentFace);
+document.getElementById('trend_val').onchange=()=>renderFace(currentFace);
+document.getElementById('temp_val').oninput=()=>renderFace(currentFace);
+
+renderFace(0);
+</script>
+</body>
+</html>
