@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nightscout Clock — Setup</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a1a;color:#e0e0e0;font-family:-apple-system,system-ui,sans-serif;
+padding:24px 16px;min-height:100vh}
+h1{font-size:20px;font-weight:600;margin-bottom:4px}
+.sub{font-size:13px;color:#888;margin-bottom:32px}
+.section-label{font-size:12px;color:#666;letter-spacing:.04em;text-transform:uppercase;margin-bottom:12px}
+
+/* Source picker */
+.source-option{
+    padding:16px 0 16px 16px;
+    border-left:3px solid transparent;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+    transition:all .15s ease;
+}
+.source-option .source-name{font-size:17px;font-weight:400;color:#888;letter-spacing:.01em}
+.source-option .source-hint{font-size:12px;color:#555;margin-top:2px}
+.source-option.active{border-left-color:#e0e0e0;background:rgba(255,255,255,0.03)}
+.source-option.active .source-name{color:#fff;font-weight:600}
+.source-option.active .source-hint{color:#888}
+.source-option:not(.active):hover .source-name{color:#bbb}
+
+/* Fields that appear under selected source */
+.source-fields{
+    display:none;
+    padding:20px 0 8px 16px;
+    border-left:3px solid #333;
+}
+.source-option.active+.source-fields{display:block}
+
+.source-fields .field{margin-bottom:20px}
+.source-fields .field-label{
+    display:block;font-size:12px;color:#888;letter-spacing:.04em;
+    text-transform:uppercase;margin-bottom:8px;
+}
+.source-fields input[type=text],
+.source-fields input[type=password],
+.source-fields input[type=email]{
+    width:100%;background:rgba(255,255,255,0.05);border:none;
+    border-bottom:2px solid #555;color:#fff;font-size:16px;padding:10px 8px;outline:none;
+    -webkit-appearance:none;border-radius:0;
+}
+.source-fields input:focus{border-bottom-color:#e0e0e0;background:rgba(255,255,255,0.08)}
+.source-fields select{
+    width:100%;background:rgba(255,255,255,0.05);border:none;
+    border-bottom:2px solid #555;color:#e0e0e0;font-size:16px;padding:10px 8px;outline:none;
+    -webkit-appearance:none;border-radius:0;
+}
+.source-fields .field-hint{font-size:13px;color:#888;margin-bottom:16px;line-height:1.4}
+.source-fields .field-hint strong{color:#e0e0e0}
+
+/* Radio group (Dexcom region, NS protocol) */
+.radio-group{display:flex;gap:0}
+.radio-group label{
+    display:flex;align-items:center;
+    font-size:15px;color:#888;padding:10px 16px;cursor:pointer;
+    border-bottom:2px solid #333;transition:all .1s;
+}
+.radio-group input[type=radio]{display:none}
+.radio-group input:checked+span{color:#fff;font-weight:600}
+.radio-group label:has(input:checked){border-bottom-color:#e0e0e0}
+
+/* Checkbox */
+.check-label{display:flex;align-items:center;font-size:14px;color:#888;cursor:pointer;gap:8px}
+.check-label input[type=checkbox]{width:16px;height:16px;accent-color:#e0e0e0}
+
+/* More options link */
+.more-link{display:block;padding:12px 0 12px 16px;font-size:13px;color:#555;cursor:pointer;
+text-decoration:none;background:none;border:none}
+.more-link:hover{color:#888}
+
+/* Validation */
+.validation-msg{font-size:13px;color:#F04848;padding:8px 0 0 16px;display:none}
+
+/* Save button */
+.btn-save{display:block;width:100%;background:#e0e0e0;color:#1a1a1a;border:none;
+font-size:16px;font-weight:600;padding:14px;cursor:pointer;letter-spacing:.02em;margin-top:32px}
+.btn-save:active{background:#fff}
+
+/* Status bar (returning user) */
+.status-bar{margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #222}
+.status-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0}
+.status-label{font-size:13px;color:#888}
+.status-value{font-size:13px;color:#e0e0e0}
+.status-ok{color:#07E0A0}
+</style>
+</head>
+<body>
+
+<h1>Nightscout Clock</h1>
+<p class="sub">Set up your glucose display</p>
+
+<!-- Status bar for returning users (would be hidden for first-time setup) -->
+<div class="status-bar">
+    <div class="status-row">
+        <span class="status-label">WiFi</span>
+        <span class="status-value status-ok">hcjms &#10003;</span>
+    </div>
+    <div class="status-row">
+        <span class="status-label">Reading</span>
+        <span class="status-value" style="color:#07E0A0">127 mg/dL &#8594;</span>
+    </div>
+</div>
+
+<p class="section-label">Where does your glucose data come from?</p>
+
+<!-- Dexcom -->
+<div class="source-option" data-source="dexcom">
+    <div class="source-name">Dexcom</div>
+    <div class="source-hint">G6, G7, ONE+</div>
+</div>
+<div class="source-fields" id="fields-dexcom">
+    <div class="field-hint">
+        Use the <strong>sensor wearer's</strong> account, not a follower.
+    </div>
+    <div class="field">
+        <label class="field-label" for="dexcom_username">Username</label>
+        <input type="text" id="dexcom_username" placeholder="">
+    </div>
+    <div class="field">
+        <label class="field-label" for="dexcom_password">Password</label>
+        <input type="password" id="dexcom_password" placeholder="">
+    </div>
+    <div class="field">
+        <label class="field-label">Region</label>
+        <div class="radio-group">
+            <label><input type="radio" name="dexcom_region" value="us"><span>US</span></label>
+            <label><input type="radio" name="dexcom_region" value="ous"><span>Outside US</span></label>
+            <label><input type="radio" name="dexcom_region" value="jp"><span>Japan</span></label>
+        </div>
+    </div>
+</div>
+
+<!-- Libre -->
+<div class="source-option" data-source="librelinkup">
+    <div class="source-name">Libre</div>
+    <div class="source-hint">LibreLinkUp &mdash; Libre 2, Libre 3</div>
+</div>
+<div class="source-fields" id="fields-libre">
+    <div class="field">
+        <label class="field-label" for="libre_email">Email</label>
+        <input type="email" id="libre_email" placeholder="">
+    </div>
+    <div class="field">
+        <label class="field-label" for="libre_password">Password</label>
+        <input type="password" id="libre_password" placeholder="">
+    </div>
+    <div class="field">
+        <label class="field-label" for="libre_region">Region</label>
+        <select id="libre_region">
+            <option value="">Choose...</option>
+            <option value="US">United States</option>
+            <option value="EU">Europe</option>
+            <option value="EU2">Europe 2</option>
+            <option value="DE">Germany</option>
+            <option value="FR">France</option>
+            <option value="AU">Australia</option>
+            <option value="CA">Canada</option>
+            <option value="JP">Japan</option>
+        </select>
+    </div>
+</div>
+
+<!-- Nightscout -->
+<div class="source-option" data-source="nightscout">
+    <div class="source-name">Nightscout</div>
+    <div class="source-hint">Self-hosted or managed CGM in the Cloud</div>
+</div>
+<div class="source-fields" id="fields-nightscout">
+    <div class="field">
+        <label class="field-label">Protocol</label>
+        <div class="radio-group">
+            <label><input type="radio" name="ns_proto" value="https" checked><span>HTTPS</span></label>
+            <label><input type="radio" name="ns_proto" value="http"><span>HTTP</span></label>
+        </div>
+    </div>
+    <div class="field">
+        <label class="field-label" for="ns_hostname">Site address</label>
+        <input type="text" id="ns_hostname" placeholder="yoursite.herokuapp.com">
+    </div>
+    <div class="field">
+        <label class="field-label" for="ns_port">Port <span style="text-transform:none;color:#555">(optional)</span></label>
+        <input type="text" id="ns_port" placeholder="">
+    </div>
+    <div class="field">
+        <label class="field-label" for="api_secret">API secret <span style="text-transform:none;color:#555">(if required)</span></label>
+        <input type="password" id="api_secret" placeholder="">
+    </div>
+    <div class="field">
+        <label class="check-label">
+            <input type="checkbox" id="ns_simplified">
+            Simplified API (xDrip+ Open Web Service)
+        </label>
+    </div>
+</div>
+
+<button type="button" class="more-link" id="show_more">More options...</button>
+
+<div id="more_sources" style="display:none">
+    <div class="source-option" data-source="medtrum">
+        <div class="source-name">Medtrum Easy Follow</div>
+    </div>
+    <div class="source-fields" id="fields-medtrum">
+        <div class="field">
+            <label class="field-label" for="medtrum_email">Email</label>
+            <input type="email" id="medtrum_email" placeholder="">
+        </div>
+        <div class="field">
+            <label class="field-label" for="medtrum_password">Password</label>
+            <input type="password" id="medtrum_password" placeholder="">
+        </div>
+    </div>
+
+    <div class="source-option" data-source="api">
+        <div class="source-name">API</div>
+        <div class="source-hint">Push data from external source</div>
+    </div>
+    <div class="source-fields" id="fields-api">
+        <div class="field-hint">
+            No configuration needed. See project documentation for API details.
+        </div>
+    </div>
+</div>
+
+<button type="button" class="btn-save">Save</button>
+
+<script>
+// Source picker behavior
+document.querySelectorAll('.source-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+        document.querySelectorAll('.source-option').forEach(o => o.classList.remove('active'));
+        opt.classList.add('active');
+    });
+});
+
+// More options toggle
+document.getElementById('show_more').addEventListener('click', function() {
+    const more = document.getElementById('more_sources');
+    const hidden = more.style.display === 'none';
+    more.style.display = hidden ? 'block' : 'none';
+    this.textContent = hidden ? 'Fewer options' : 'More options...';
+});
+</script>
+</body>
+</html>
