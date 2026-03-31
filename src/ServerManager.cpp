@@ -511,14 +511,51 @@ void ServerManager_::setupWebServer(IPAddress ip) {
         request->send(LittleFS, CONFIG_JSON, "application/json");
     });
 
-    // Captive portal detection routes.
+    // Captive portal detection routes — redirect to minimal no-JS setup page.
     // Android and Chrome OS check /generate_204, Windows checks /connecttest.txt.
     // iOS/macOS checks /hotspot-detect.html, handled via static file in data/.
     ws->on("/generate_204", HTTP_GET, [](AsyncWebServerRequest* request) {
-        request->redirect("/");
+        request->redirect("/captive.html");
     });
     ws->on("/connecttest.txt", HTTP_GET, [](AsyncWebServerRequest* request) {
-        request->redirect("/");
+        request->redirect("/captive.html");
+    });
+
+    // WiFi setup endpoint — accepts form-encoded POST from captive portal (no JS required)
+    ws->on("/api/wifi", HTTP_POST, [this](AsyncWebServerRequest* request) {
+        if (!request->hasParam("ssid", true)) {
+            request->send(400, "text/html",
+                "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" "
+                "content=\"width=device-width,initial-scale=1\"><style>body{background:#1a1a1a;"
+                "color:#F04848;font-family:sans-serif;padding:24px}</style></head><body>"
+                "<p>Network name is required.</p><a href=\"/captive.html\">Try again</a></body></html>");
+            return;
+        }
+
+        String ssid = request->getParam("ssid", true)->value();
+        String password = request->hasParam("password", true)
+            ? request->getParam("password", true)->value() : "";
+
+        SettingsManager.settings.ssid = ssid;
+        SettingsManager.settings.wifi_password = password;
+        SettingsManager.saveSettingsToFile();
+
+        String responseHtml =
+            "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" "
+            "content=\"width=device-width,initial-scale=1\"><style>body{background:#1a1a1a;"
+            "color:#e0e0e0;font-family:sans-serif;padding:24px}h1{font-size:20px;margin-bottom:8px}"
+            ".ok{color:#07E0A0}a{color:#58a6ff}</style></head><body>"
+            "<h1>WiFi saved</h1>"
+            "<p class=\"ok\">The clock will now restart and connect to <strong>" + ssid + "</strong>.</p>"
+            "<p style=\"margin-top:16px;color:#888\">After the clock restarts, open your browser and go to "
+            "the IP address shown on the clock display to finish setup.</p>"
+            "</body></html>";
+        request->send(200, "text/html", responseHtml);
+
+        // Restart after a brief delay to allow the response to be sent
+        delay(1500);
+        LittleFS.end();
+        ESP.restart();
     });
 
     addStaticFileHandler();

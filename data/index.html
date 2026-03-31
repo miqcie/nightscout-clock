@@ -128,37 +128,317 @@
                     </div>
                 </div>
                 <br />
-                <div class="card" id="glucose_source_card">
-                    <h5 class="card-header">Glucose data source</h5>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-12">
-                                <label for="glucose_source" class="form-label">Please select glucose data
-                                    source</label>
-                                <select class="form-select" id="glucose_source" required>
-                                    <option value="">Choose...</option>
-                                    <option value="dexcom">Dexcom</option>
-                                    <option value="nightscout">Nightscout</option>
-                                    <option value="librelinkup">LibreLinkUp</option>
-                                    <option value="carelink">Medtronic CareLink</option>
-                                    <option value="medtrum">Medtrum Easy Follow</option>
-                                    <option value="api">
-                                        API (see project documentation)
-                                    </option>
-                                </select>
-                                <div class="invalid-feedback">
-                                    Please select glucose data source
+                <style>
+                    .source-picker { margin: 0; padding: 0; }
+                    .source-option {
+                        padding: 14px 0 14px 16px;
+                        border-left: 3px solid transparent;
+                        cursor: pointer;
+                        transition: all 0.15s ease;
+                        -webkit-tap-highlight-color: transparent;
+                    }
+                    .source-option .source-name {
+                        font-size: 17px;
+                        font-weight: 400;
+                        color: #888;
+                        letter-spacing: 0.01em;
+                    }
+                    .source-option .source-hint {
+                        font-size: 12px;
+                        color: #555;
+                        margin-top: 2px;
+                    }
+                    .source-option.active {
+                        border-left-color: #e0e0e0;
+                        background: rgba(255,255,255,0.03);
+                    }
+                    .source-option.active .source-name {
+                        color: #fff;
+                        font-weight: 600;
+                    }
+                    .source-option.active .source-hint {
+                        color: #888;
+                    }
+                    .source-option:not(.active):hover .source-name {
+                        color: #bbb;
+                    }
+                    .source-fields {
+                        display: none;
+                        padding: 16px 0 8px 16px;
+                        border-left: 3px solid #333;
+                        margin-bottom: 8px;
+                    }
+                    .source-option.active + .source-fields {
+                        display: block;
+                    }
+                    .source-fields label {
+                        display: block;
+                        font-size: 12px;
+                        color: #888;
+                        margin-bottom: 4px;
+                        letter-spacing: 0.02em;
+                        text-transform: uppercase;
+                    }
+                    .source-fields .field {
+                        margin-bottom: 20px;
+                    }
+                    .source-fields input[type=text],
+                    .source-fields input[type=password],
+                    .source-fields input[type=email] {
+                        width: 100%;
+                        background: transparent;
+                        border: none;
+                        border-bottom: 1px solid #444;
+                        color: #e0e0e0;
+                        font-size: 16px;
+                        padding: 8px 0;
+                        outline: none;
+                        -webkit-appearance: none;
+                        border-radius: 0;
+                    }
+                    .source-fields input:focus {
+                        border-bottom-color: #e0e0e0;
+                    }
+                    .source-fields select {
+                        width: 100%;
+                        background: #1a1a1a;
+                        border: none;
+                        border-bottom: 1px solid #444;
+                        color: #e0e0e0;
+                        font-size: 16px;
+                        padding: 8px 0;
+                        outline: none;
+                        -webkit-appearance: none;
+                        border-radius: 0;
+                    }
+                    .source-fields .field-hint {
+                        font-size: 12px;
+                        color: #666;
+                        margin-top: 4px;
+                    }
+                    .source-more-link {
+                        display: block;
+                        padding: 12px 0 12px 16px;
+                        font-size: 13px;
+                        color: #555;
+                        cursor: pointer;
+                        text-decoration: none;
+                        border: none;
+                        background: none;
+                    }
+                    .source-more-link:hover { color: #888; }
+                    .source-section-label {
+                        font-size: 13px;
+                        color: #666;
+                        letter-spacing: 0.04em;
+                        text-transform: uppercase;
+                        margin-bottom: 12px;
+                    }
+                    .source-validation-msg {
+                        font-size: 13px;
+                        color: #F04848;
+                        padding: 8px 0 0 16px;
+                        display: none;
+                    }
+                </style>
+
+                <div id="glucose_source_card">
+                    <!-- Hidden select kept in sync by JS for save compatibility -->
+                    <select class="d-none" id="glucose_source" required>
+                        <option value="">Choose...</option>
+                        <option value="dexcom">Dexcom</option>
+                        <option value="nightscout">Nightscout</option>
+                        <option value="librelinkup">LibreLinkUp</option>
+                        <option value="carelink">Medtronic CareLink</option>
+                        <option value="medtrum">Medtrum Easy Follow</option>
+                        <option value="api">API</option>
+                    </select>
+
+                    <p class="source-section-label">Where does your glucose data come from?</p>
+
+                    <div class="source-picker">
+                        <!-- Dexcom -->
+                        <div class="source-option" data-source="dexcom">
+                            <div class="source-name">Dexcom</div>
+                            <div class="source-hint">G6, G7, ONE+</div>
+                        </div>
+                        <div class="source-fields" id="source-fields-dexcom">
+                            <div class="field-hint" style="margin-bottom:16px;color:#888">
+                                Use the <strong style="color:#e0e0e0">sensor wearer's</strong> account, not a follower.
+                            </div>
+                            <div class="field">
+                                <label for="dexcom_username">Username</label>
+                                <input type="text" id="dexcom_username" name="dexcom_username" autocomplete="username">
+                                <div class="invalid-feedback">Dexcom username is required</div>
+                            </div>
+                            <div class="field">
+                                <label for="dexcom_password">Password</label>
+                                <input type="password" id="dexcom_password" name="dexcom_password" autocomplete="current-password">
+                                <div class="invalid-feedback">Dexcom password is required</div>
+                            </div>
+                            <div class="field">
+                                <label for="dexcom_server">Region</label>
+                                <div style="display:flex;gap:0">
+                                    <label style="display:inline;text-transform:none;font-size:15px;padding:10px 20px;cursor:pointer;border-bottom:1px solid #444">
+                                        <input type="radio" name="dexcom_region" value="us" style="margin-right:6px"> US
+                                    </label>
+                                    <label style="display:inline;text-transform:none;font-size:15px;padding:10px 20px;cursor:pointer;border-bottom:1px solid #444">
+                                        <input type="radio" name="dexcom_region" value="ous" style="margin-right:6px"> Outside US
+                                    </label>
+                                    <label style="display:inline;text-transform:none;font-size:15px;padding:10px 20px;cursor:pointer;border-bottom:1px solid #444">
+                                        <input type="radio" name="dexcom_region" value="jp" style="margin-right:6px"> Japan
+                                    </label>
                                 </div>
-                                <div class="alert alert-info mt-3 d-none" id="medtronic_info_alert" role="alert">
-                                    Medtronic CareLink is not configured directly on the clock.
-                                    Install xDrip+ on the phone connected to the sensor, connect xDrip+ to a
-                                    Nightscout site, then connect the clock to that same Nightscout site by
-                                    selecting the Nightscout source here. More details:
-                                    <a href="https://github.com/ktomy/nightscout-clock/discussions/53" target="_blank"
-                                        rel="noopener noreferrer">GitHub discussion #53</a>.
+                                <!-- Keep the original select hidden for JS compat -->
+                                <select class="d-none" id="dexcom_server">
+                                    <option value="">Choose...</option>
+                                    <option value="us">US</option>
+                                    <option value="ous">Non-US</option>
+                                    <option value="jp">Japan</option>
+                                </select>
+                                <div class="invalid-feedback">Please select Dexcom server</div>
+                            </div>
+                        </div>
+
+                        <!-- LibreLinkUp -->
+                        <div class="source-option" data-source="librelinkup">
+                            <div class="source-name">Libre</div>
+                            <div class="source-hint">LibreLinkUp &mdash; Libre 2, Libre 3</div>
+                        </div>
+                        <div class="source-fields" id="source-fields-librelinkup">
+                            <div class="field">
+                                <label for="librelinkup_email">Email</label>
+                                <input type="email" id="librelinkup_email" name="librelinkup_email" autocomplete="email">
+                                <div class="invalid-feedback">LibreLink Up email is required</div>
+                            </div>
+                            <div class="field">
+                                <label for="librelinkup_password">Password</label>
+                                <input type="password" id="librelinkup_password" name="librelinkup_password" autocomplete="current-password">
+                                <div class="invalid-feedback">LibreLink Up password is required</div>
+                            </div>
+                            <div class="field">
+                                <label for="librelinkup_region">Region</label>
+                                <select id="librelinkup_region" required>
+                                    <option value="">Choose...</option>
+                                    <option value="US">United States</option>
+                                    <option value="EU">Europe</option>
+                                    <option value="EU2">Europe 2</option>
+                                    <option value="DE">Germany</option>
+                                    <option value="FR">France</option>
+                                    <option value="AU">Australia</option>
+                                    <option value="CA">Canada</option>
+                                    <option value="AE">United Arab Emirates</option>
+                                    <option value="AP">Asia Pacific</option>
+                                    <option value="JP">Japan</option>
+                                    <option value="LA">Latin America</option>
+                                    <option value="RU">Russia</option>
+                                </select>
+                                <div class="invalid-feedback">Please select LibreLink Up server</div>
+                            </div>
+                            <div class="d-none" id="librelinkup_multiple_patients_block">
+                                <div class="field">
+                                    <label for="librelinkup_patient_select">Patient</label>
+                                    <select id="librelinkup_patient_select" required>
+                                        <option value="">Choose...</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Nightscout -->
+                        <div class="source-option" data-source="nightscout">
+                            <div class="source-name">Nightscout</div>
+                            <div class="source-hint">Self-hosted or managed CGM in the Cloud</div>
+                        </div>
+                        <div class="source-fields" id="source-fields-nightscout">
+                            <div class="field">
+                                <label for="ns_protocol">Protocol</label>
+                                <div style="display:flex;gap:0">
+                                    <label style="display:inline;text-transform:none;font-size:15px;padding:10px 20px;cursor:pointer;border-bottom:1px solid #444">
+                                        <input type="radio" name="ns_proto" value="https" checked style="margin-right:6px"> HTTPS
+                                    </label>
+                                    <label style="display:inline;text-transform:none;font-size:15px;padding:10px 20px;cursor:pointer;border-bottom:1px solid #444">
+                                        <input type="radio" name="ns_proto" value="http" style="margin-right:6px"> HTTP
+                                    </label>
+                                </div>
+                                <select class="d-none" id="ns_protocol">
+                                    <option value="https">HTTPS</option>
+                                    <option value="http">HTTP</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="ns_hostname">Site address</label>
+                                <input type="text" id="ns_hostname" placeholder="yoursite.herokuapp.com" required>
+                                <div class="invalid-feedback">Please enter a valid hostname</div>
+                            </div>
+                            <div class="field">
+                                <label for="ns_port">Port <span style="color:#555">(optional)</span></label>
+                                <input type="text" id="ns_port">
+                                <div class="invalid-feedback">Port must be a valid TCP port</div>
+                            </div>
+                            <div class="field">
+                                <label for="api_secret">API secret <span style="color:#555">(if your site requires it)</span></label>
+                                <input type="password" id="api_secret" name="api_secret" autocomplete="off">
+                                <div class="invalid-feedback">API secret must be at least 12 characters</div>
+                            </div>
+                            <div class="field">
+                                <label style="display:inline;text-transform:none;font-size:14px;cursor:pointer;color:#e0e0e0">
+                                    <input type="checkbox" id="nightscout_simplified_api" style="margin-right:6px">
+                                    Simplified API (xDrip+ Open Web Service)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- More sources -->
+                    <div id="more_sources_wrapper" class="d-none">
+                        <div class="source-picker">
+                            <div class="source-option" data-source="medtrum">
+                                <div class="source-name">Medtrum Easy Follow</div>
+                            </div>
+                            <div class="source-fields" id="source-fields-medtrum">
+                                <div class="field">
+                                    <label for="medtrum_email">Email</label>
+                                    <input type="email" id="medtrum_email" name="medtrum_email" autocomplete="email">
+                                    <div class="invalid-feedback">Medtrum email is required</div>
+                                </div>
+                                <div class="field">
+                                    <label for="medtrum_password">Password</label>
+                                    <input type="password" id="medtrum_password" name="medtrum_password" autocomplete="current-password">
+                                    <div class="invalid-feedback">Medtrum password is required</div>
+                                </div>
+                            </div>
+
+                            <div class="source-option" data-source="api">
+                                <div class="source-name">API</div>
+                                <div class="source-hint">Push data from external source</div>
+                            </div>
+                            <div class="source-fields" id="source-fields-api">
+                                <div class="field-hint" style="color:#888">
+                                    No configuration needed. See
+                                    <a href="https://github.com/ktomy/nightscout-clock" target="_blank" style="color:#58a6ff">project documentation</a>
+                                    for API details.
+                                </div>
+                            </div>
+
+                            <div class="source-option" data-source="carelink" style="opacity:0.6">
+                                <div class="source-name">Medtronic CareLink</div>
+                                <div class="source-hint">Requires Nightscout bridge &mdash; see below</div>
+                            </div>
+                            <div class="source-fields" id="source-fields-carelink">
+                                <div class="field-hint" style="color:#888">
+                                    CareLink is not configured directly on the clock.
+                                    Set up xDrip+ with a Nightscout site, then select Nightscout above.
+                                    <a href="https://github.com/ktomy/nightscout-clock/discussions/53" target="_blank" style="color:#58a6ff">Details</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" class="source-more-link" id="show_more_sources">More options...</button>
+
+                    <div class="source-validation-msg" id="source_validation_msg">
+                        Please select a glucose data source
                     </div>
                 </div>
                 <br />

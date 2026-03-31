@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nightscout Clock Setup</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a1a;color:#e0e0e0;font-family:-apple-system,system-ui,sans-serif;padding:24px 16px;min-height:100vh}
+h1{font-size:20px;font-weight:600;margin-bottom:4px}
+.sub{font-size:13px;color:#888;margin-bottom:32px}
+label{display:block;font-size:13px;color:#888;margin-bottom:6px;letter-spacing:0.02em}
+input[type=text],input[type=password]{width:100%;background:transparent;border:none;border-bottom:1px solid #444;color:#e0e0e0;font-size:16px;padding:8px 0;outline:none;-webkit-appearance:none;border-radius:0}
+input:focus{border-bottom-color:#e0e0e0}
+.field{margin-bottom:24px}
+button{display:block;width:100%;background:#e0e0e0;color:#1a1a1a;border:none;font-size:16px;font-weight:600;padding:14px;cursor:pointer;letter-spacing:0.02em;margin-top:32px}
+button:active{background:#fff}
+.msg{font-size:14px;margin-top:16px;padding:12px;border-left:3px solid}
+.msg-ok{color:#07E0A0;border-color:#07E0A0}
+.msg-err{color:#F04848;border-color:#F04848}
+.msg-info{color:#888;border-color:#444}
+</style>
+</head>
+<body>
+<h1>Nightscout Clock</h1>
+<p class="sub">Connect to your WiFi network</p>
+<form method="POST" action="/api/wifi">
+<div class="field">
+<label for="ssid">Network name</label>
+<input type="text" id="ssid" name="ssid" required autocomplete="off" placeholder="">
+</div>
+<div class="field">
+<label for="password">Password</label>
+<input type="password" id="password" name="password" autocomplete="off" placeholder="">
+</div>
+<button type="submit">Connect</button>
+</form>
+</body>
+</html>

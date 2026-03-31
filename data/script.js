@@ -76,6 +76,33 @@
             updatePasswordToggleIcon(passwordField, btn);
         });
 
+        // Source picker: tap to select, fields expand inline
+        $('.source-option').on('click', function() {
+            const source = $(this).data('source');
+            // Remove active from all options
+            $('.source-option').removeClass('active');
+            // Activate this one
+            $(this).addClass('active');
+            // Update hidden select and trigger existing change handlers
+            $('#glucose_source').val(source).trigger('change');
+            // Hide validation message
+            $('#source_validation_msg').hide();
+            // Sync radio buttons to hidden selects for Dexcom region
+            $('input[name="dexcom_region"]').on('change', function() {
+                $('#dexcom_server').val($(this).val());
+            });
+            // Sync radio buttons to hidden select for NS protocol
+            $('input[name="ns_proto"]').on('change', function() {
+                $('#ns_protocol').val($(this).val());
+            });
+        });
+
+        // More sources toggle
+        $('#show_more_sources').on('click', function() {
+            $('#more_sources_wrapper').toggleClass('d-none');
+            $(this).text($('#more_sources_wrapper').hasClass('d-none') ? 'More options...' : 'Fewer options');
+        });
+
     }
 
     function addAdditionalWifiTypeHandler() {
@@ -1143,9 +1170,24 @@
         // glucose source
         $('#glucose_source').val(json['data_source']);
         $('#glucose_source').trigger('change');
+        // Activate source picker option to match loaded data
+        var loadedSource = json['data_source'];
+        if (loadedSource) {
+            $('.source-option').removeClass('active');
+            $(`.source-option[data-source="${loadedSource}"]`).addClass('active');
+            // Show "more options" if the loaded source is in the secondary group
+            if (['medtrum', 'api', 'carelink'].indexOf(loadedSource) >= 0) {
+                $('#more_sources_wrapper').removeClass('d-none');
+                $('#show_more_sources').text('Fewer options');
+            }
+        }
 
         //Dexcom
         $('#dexcom_server').val(json['dexcom_server']);
+        // Sync Dexcom radio buttons from hidden select
+        if (json['dexcom_server']) {
+            $(`input[name="dexcom_region"][value="${json['dexcom_server']}"]`).prop('checked', true);
+        }
         $('#dexcom_username').val(json['dexcom_username']);
         $('#dexcom_password').val(json['dexcom_password']);
 
@@ -1177,6 +1219,9 @@
             $('#ns_hostname').val(url.hostname);
             $('#ns_port').val(url.port);
             $('#ns_protocol').val(url.protocol.replace(":", ""));
+            // Sync NS protocol radio buttons
+            var proto = url.protocol.replace(":", "");
+            $(`input[name="ns_proto"][value="${proto}"]`).prop('checked', true);
         }
 
         $('#bg_units').val(json['units']);
