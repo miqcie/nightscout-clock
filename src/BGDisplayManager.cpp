@@ -49,6 +49,8 @@ void BGDisplayManager_::setup() {
     facesNames[5] = "Clock and value";
     faces.push_back(new BGDisplayFaceRoomTemp());
     facesNames[6] = "Room temp";
+    faces.push_back(new BGDisplayFaceWeather());
+    facesNames[7] = "Weather";
 
     currentFaceIndex = SettingsManager.settings.default_clockface;
     if (currentFaceIndex >= faces.size()) {

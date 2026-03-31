@@ -9,6 +9,7 @@
 #include "ServerManager.h"
 #include "SettingsManager.h"
 #include "globals.h"
+#include "BGDisplayFaceWeather.h"
 #include "improv_consume.h"
 
 float apModeHintPosition = MATRIX_WIDTH;  // Start the scrolling right after the screen
@@ -103,6 +104,7 @@ void loop() {
         bgSourceManager.tick();
         bgDisplayManager.tick();
         bgAlarmManager.tick();
+        BGDisplayFaceWeather::fetchWeather();  // cached, only fetches every 30 min
 
     } else if (ServerManager.isInAPMode) {
         showJoinAP();
