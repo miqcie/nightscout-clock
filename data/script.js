@@ -512,11 +512,13 @@
     function glucoseDataSourceSwitch() {
         const glucoseSource = $('#glucose_source');
         const value = glucoseSource.val();
-        $('#nightscout_settings_card').toggleClass("d-none", value !== "nightscout");
-        $('#dexcom_settings_card').toggleClass("d-none", value !== "dexcom");
-        $('#librelinkup_settings_card').toggleClass("d-none", value !== "librelinkup");
-        $('#medtrum_settings_card').toggleClass("d-none", value !== "medtrum");
-        $('#medtronic_info_alert').toggleClass("d-none", value !== "carelink");
+        // Old settings cards are replaced by inline source-fields in the source picker.
+        // Keep them permanently hidden.
+        $('#nightscout_settings_card').addClass("d-none");
+        $('#dexcom_settings_card').addClass("d-none");
+        $('#librelinkup_settings_card').addClass("d-none");
+        $('#medtrum_settings_card').addClass("d-none");
+        $('#medtronic_info_alert').addClass("d-none");
         setGlucoseSourceFeedback(defaultGlucoseSourceFeedback);
 
         removeFocusOutValidation('ns_hostname');
