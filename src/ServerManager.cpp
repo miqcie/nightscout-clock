@@ -623,10 +623,12 @@ void ServerManager_::setupWebServer(IPAddress ip) {
                     "</div>";
         }
 
-        // WiFi password
+        // WiFi password — autocomplete helps iOS offer saved passwords without switching apps
         html += "<div class=\"f\">"
                 "<label class=\"fl\" for=\"password\">WiFi password</label>"
-                "<input type=\"password\" id=\"password\" name=\"password\">"
+                "<input type=\"password\" id=\"password\" name=\"password\" autocomplete=\"current-password\">"
+                "<p style=\"font-size:11px;color:#555;margin-top:6px\">"
+                "Tap the key icon above your keyboard for saved passwords</p>"
                 "</div>";
 
         // CGM source section
