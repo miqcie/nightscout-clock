@@ -32,9 +32,9 @@
 #define WIFI_CONNECT_TIMEOUT 15000
 #define AP_MODE_PASSWORD ""
 #define HOSTNAME_PREFIX "nsclock"
-#define AP_IP "192.168.4.1"
+#define AP_IP "10.0.0.1"
 #define AP_NETMASK "255.255.255.0"
-#define AP_GATEWAY "192.168.4.1"
+#define AP_GATEWAY "10.0.0.1"
 #define DEFAULT_TIMEZONE "UTC0"
 #define TIME_SYNC_INTERVAL 86400
 #define COLOR_RED 0xF800
