@@ -521,6 +521,113 @@ void ServerManager_::setupWebServer(IPAddress ip) {
         request->redirect("/captive.html");
     });
 
+    // Dynamic captive portal page — scans WiFi and renders network list as HTML.
+    // No JavaScript required (iOS captive portal has JS disabled).
+    ws->on("/captive.html", HTTP_GET, [](AsyncWebServerRequest* request) {
+        // Scan for networks (synchronous, ~2-3 seconds)
+        int n = WiFi.scanNetworks();
+
+        String html =
+            "<!DOCTYPE html><html lang=\"en\"><head>"
+            "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
+            "<title>Nightscout Clock</title><style>"
+            "*{margin:0;padding:0;box-sizing:border-box}"
+            "body{background:#1a1a1a;color:#e0e0e0;font-family:-apple-system,system-ui,sans-serif;"
+            "padding:24px 16px;min-height:100vh}"
+            "h1{font-size:20px;font-weight:600;margin-bottom:4px}"
+            ".sub{font-size:13px;color:#888;margin-bottom:24px}"
+            "label{display:block;font-size:13px;color:#888;margin-bottom:6px;letter-spacing:.02em}"
+            "input[type=text],input[type=password]{width:100%;background:transparent;border:none;"
+            "border-bottom:1px solid #444;color:#e0e0e0;font-size:16px;padding:8px 0;outline:none;"
+            "-webkit-appearance:none;border-radius:0}"
+            "input:focus{border-bottom-color:#e0e0e0}"
+            ".field{margin-bottom:24px}"
+            ".net{display:block;padding:14px 0;border-bottom:1px solid #222;cursor:pointer;"
+            "-webkit-tap-highlight-color:transparent}"
+            ".net input[type=radio]{display:none}"
+            ".net .name{font-size:16px;color:#888;transition:color .1s}"
+            ".net .sig{font-size:11px;color:#444;float:right;margin-top:3px}"
+            ".net input:checked~.name{color:#fff;font-weight:600}"
+            "button{display:block;width:100%;background:#e0e0e0;color:#1a1a1a;border:none;"
+            "font-size:16px;font-weight:600;padding:14px;cursor:pointer;letter-spacing:.02em;margin-top:24px}"
+            "button:active{background:#fff}"
+            ".manual-toggle{display:block;font-size:13px;color:#555;margin-top:16px;cursor:pointer;"
+            "text-decoration:none;background:none;border:none;padding:0}"
+            "#manual-entry{display:none}"
+            "</style></head><body>"
+            "<h1>Nightscout Clock</h1>"
+            "<p class=\"sub\">Connect to your WiFi network</p>"
+            "<form method=\"POST\" action=\"/api/wifi\">";
+
+        if (n > 0) {
+            // Deduplicate and sort by signal strength
+            std::vector<std::pair<String, int>> networks;
+            for (int i = 0; i < n; i++) {
+                String ssid = WiFi.SSID(i);
+                if (ssid.length() == 0) continue;
+                bool duplicate = false;
+                for (auto& net : networks) {
+                    if (net.first == ssid) {
+                        if (WiFi.RSSI(i) > net.second) net.second = WiFi.RSSI(i);
+                        duplicate = true;
+                        break;
+                    }
+                }
+                if (!duplicate) {
+                    networks.push_back({ssid, WiFi.RSSI(i)});
+                }
+            }
+            // Sort by signal strength descending
+            std::sort(networks.begin(), networks.end(),
+                [](const std::pair<String, int>& a, const std::pair<String, int>& b) {
+                    return a.second > b.second;
+                });
+
+            for (auto& net : networks) {
+                // Signal strength bars: ▂▄▆█
+                int rssi = net.second;
+                String bars;
+                if (rssi > -50) bars = "&#9608;&#9608;&#9608;&#9608;";
+                else if (rssi > -60) bars = "&#9608;&#9608;&#9608;";
+                else if (rssi > -70) bars = "&#9608;&#9608;";
+                else bars = "&#9608;";
+
+                html += "<label class=\"net\"><input type=\"radio\" name=\"ssid\" value=\"";
+                html += net.first;
+                html += "\"><span class=\"sig\">";
+                html += bars;
+                html += "</span><span class=\"name\">";
+                html += net.first;
+                html += "</span></label>";
+            }
+
+            html += "<button type=\"button\" class=\"manual-toggle\" "
+                    "onclick=\"document.getElementById('manual-entry').style.display='block';"
+                    "this.style.display='none'\">"
+                    "Enter network name manually</button>"
+                    "<div id=\"manual-entry\">"
+                    "<div class=\"field\" style=\"margin-top:16px\">"
+                    "<label for=\"ssid_manual\">Network name</label>"
+                    "<input type=\"text\" id=\"ssid_manual\" name=\"ssid\" autocomplete=\"off\">"
+                    "</div></div>";
+        } else {
+            html += "<div class=\"field\">"
+                    "<label for=\"ssid\">Network name</label>"
+                    "<input type=\"text\" id=\"ssid\" name=\"ssid\" required autocomplete=\"off\">"
+                    "</div>";
+        }
+
+        html += "<div class=\"field\">"
+                "<label for=\"password\">Password</label>"
+                "<input type=\"password\" id=\"password\" name=\"password\" autocomplete=\"off\">"
+                "</div>"
+                "<button type=\"submit\">Connect</button>"
+                "</form></body></html>";
+
+        request->send(200, "text/html", html);
+        WiFi.scanDelete();
+    });
+
     // WiFi setup endpoint — accepts form-encoded POST from captive portal (no JS required)
     ws->on("/api/wifi", HTTP_POST, [this](AsyncWebServerRequest* request) {
         if (!request->hasParam("ssid", true)) {
