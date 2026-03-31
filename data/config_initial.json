@@ -55,5 +55,7 @@
     "custom_nodatatimer_enable": false,
     "custom_nodatatimer": 20,
     "web_auth_enable": false,
-    "web_auth_password": ""
+    "web_auth_password": "",
+    "face_auto_rotate": true,
+    "face_rotate_interval_sec": 15
 }

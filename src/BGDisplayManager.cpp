@@ -72,7 +72,24 @@ void BGDisplayManager_::setFace(int id) {
     }
 }
 
-void BGDisplayManager_::tick() { maybeRrefreshScreen(); }
+void BGDisplayManager_::tick() {
+    // Auto-rotate faces on a timer
+    if (SettingsManager.settings.face_auto_rotate) {
+        unsigned long now = millis();
+        unsigned long intervalMs = (unsigned long)SettingsManager.settings.face_rotate_interval_sec * 1000UL;
+        if (now - lastFaceRotateMs >= intervalMs) {
+            lastFaceRotateMs = now;
+            int nextFace = (currentFaceIndex + 1) % faces.size();
+            setFace(nextFace);
+            return;  // setFace already calls tick->maybeRefreshScreen
+        }
+    }
+    maybeRrefreshScreen();
+}
+
+void BGDisplayManager_::resetAutoRotateTimer() {
+    lastFaceRotateMs = millis();
+}
 
 void BGDisplayManager_::maybeRrefreshScreen(bool force) {
     auto currentEpoch = ServerManager.getUtcEpoch();

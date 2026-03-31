@@ -59,4 +59,6 @@ public:
     bool alarm_intensive_mode;
     bool web_auth_enable;
     String web_auth_password;
+    bool face_auto_rotate;
+    int face_rotate_interval_sec;
 };

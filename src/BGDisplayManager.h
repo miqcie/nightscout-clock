@@ -92,8 +92,11 @@ public:
 
     static void drawTimerBlocks(GlucoseReading lastReading, int width, int xPosition, int yPosition);
 
+    void resetAutoRotateTimer();
+
 private:
     unsigned long long lastRefreshEpoch;
+    unsigned long lastFaceRotateMs = 0;
 };
 
 extern BGDisplayManager_& bgDisplayManager;

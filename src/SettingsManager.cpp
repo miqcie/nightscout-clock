@@ -209,6 +209,13 @@ bool SettingsManager_::loadSettingsFromFile() {
     settings.web_auth_enable = (*doc)["web_auth_enable"].as<bool>();
     settings.web_auth_password = (*doc)["web_auth_password"].as<String>();
 
+    // Face auto-rotate
+    settings.face_auto_rotate = (*doc)["face_auto_rotate"].as<bool>();
+    settings.face_rotate_interval_sec = (*doc)["face_rotate_interval_sec"].as<int>();
+    if (settings.face_rotate_interval_sec < 5 || settings.face_rotate_interval_sec > 120) {
+        settings.face_rotate_interval_sec = 15;  // default 15 seconds
+    }
+
     delete doc;
 
     this->settings = settings;
@@ -330,6 +337,10 @@ bool SettingsManager_::saveSettingsToFile() {
     // Web interface authentication
     (*doc)["web_auth_enable"] = settings.web_auth_enable;
     (*doc)["web_auth_password"] = settings.web_auth_password;
+
+    // Face auto-rotate
+    (*doc)["face_auto_rotate"] = settings.face_auto_rotate;
+    (*doc)["face_rotate_interval_sec"] = settings.face_rotate_interval_sec;
 
     if (trySaveJsonAsSettings(*doc) == false)
         return false;
