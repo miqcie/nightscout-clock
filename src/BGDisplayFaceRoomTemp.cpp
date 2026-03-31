@@ -1,0 +1,71 @@
+#include "BGDisplayFaceRoomTemp.h"
+
+#include "BGDisplayManager.h"
+#include "DisplayManager.h"
+#include "SettingsManager.h"
+#include "globals.h"
+
+void BGDisplayFaceRoomTemp::showReadings(
+    const std::list<GlucoseReading>& readings, bool dataIsOld) const {
+    DisplayManager.clearMatrix();
+
+    // Show BG reading on the right side (same as other faces)
+    showReading(readings.back(), 31, 6, TEXT_ALIGNMENT::RIGHT, FONT_TYPE::MEDIUM, dataIsOld);
+    showTrendVerticalLine(31, readings.back().trend, dataIsOld);
+
+    // Show room temperature on the left side
+    float temp = CURRENT_TEMP;
+    if (!IS_CELSIUS) {
+        temp = temp * 9.0f / 5.0f + 32.0f;
+    }
+
+    // Color based on comfort: blue<65F, green 65-80F, yellow 80-85F, red>85F
+    int tempF = IS_CELSIUS ? (int)(temp * 9.0f / 5.0f + 32.0f) : (int)temp;
+    uint16_t tempColor;
+    if (tempF < 65) tempColor = COLOR_CYAN;
+    else if (tempF <= 80) tempColor = COLOR_GREEN;
+    else if (tempF <= 85) tempColor = COLOR_YELLOW;
+    else tempColor = COLOR_RED;
+
+    char tempStr[6];
+    if (IS_CELSIUS) {
+        snprintf(tempStr, sizeof(tempStr), "%d", (int)temp);
+    } else {
+        snprintf(tempStr, sizeof(tempStr), "%d", (int)temp);
+    }
+
+    DisplayManager.setTextColor(tempColor);
+    DisplayManager.printText(0, 6, tempStr, TEXT_ALIGNMENT::LEFT, 2);
+
+    // Show degree symbol and humidity as a single pixel row at bottom
+    int hum = (int)CURRENT_HUM;
+    // Draw humidity bar: width proportional to humidity (0-100% mapped to 0-16px)
+    int barWidth = hum * 16 / 100;
+    for (int i = 0; i < barWidth; i++) {
+        DisplayManager.drawPixel(i, 7, COLOR_BLUE);
+    }
+
+    BGDisplayManager_::drawTimerBlocks(readings.back(), MATRIX_WIDTH - 17, 18, 7);
+}
+
+void BGDisplayFaceRoomTemp::showNoData() const {
+    DisplayManager.clearMatrix();
+
+    float temp = CURRENT_TEMP;
+    if (!IS_CELSIUS) {
+        temp = temp * 9.0f / 5.0f + 32.0f;
+    }
+
+    char tempStr[8];
+    snprintf(tempStr, sizeof(tempStr), "%d*", (int)temp);
+
+    int hum = (int)CURRENT_HUM;
+    char humStr[6];
+    snprintf(humStr, sizeof(humStr), "%d%%", hum);
+
+    DisplayManager.setTextColor(COLOR_GREEN);
+    DisplayManager.printText(0, 6, tempStr, TEXT_ALIGNMENT::LEFT, 2);
+
+    DisplayManager.setTextColor(COLOR_BLUE);
+    DisplayManager.printText(31, 6, humStr, TEXT_ALIGNMENT::RIGHT, 2);
+}

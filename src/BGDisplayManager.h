@@ -14,6 +14,7 @@
 #include "BGDisplayFaceGraphAndBG.h"
 #include "BGDisplayFaceSimple.h"
 #include "BGDisplayFaceValueAndDiff.h"
+#include "BGDisplayFaceRoomTemp.h"
 #include "BGSource.h"
 
 struct GlucoseInterval {
