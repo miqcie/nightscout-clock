@@ -514,11 +514,39 @@ void ServerManager_::setupWebServer(IPAddress ip) {
     // Captive portal detection — serve setup page directly (no redirects).
     // Redirects fail in iOS CaptiveNetworkSupport WebView.
     // All captive portal detection paths serve the same dynamic WiFi setup page.
+    // Scan WiFi networks ONCE at startup, cache results.
+    // WiFi.scanNetworks() is synchronous (~3s) and disrupts the AP radio,
+    // causing captive portal clients to disconnect if scanned per-request.
+    WiFi.scanNetworks(true);  // async scan, results retrieved later
+    delay(3000);              // wait for scan to complete
+    int cachedNetworkCount = WiFi.scanComplete();
+    std::vector<std::pair<String, int>> cachedNetworks;
+    if (cachedNetworkCount > 0) {
+        for (int i = 0; i < cachedNetworkCount; i++) {
+            String ssid = WiFi.SSID(i);
+            if (ssid.length() == 0) continue;
+            bool dup = false;
+            for (auto& net : cachedNetworks) {
+                if (net.first == ssid) {
+                    if (WiFi.RSSI(i) > net.second) net.second = WiFi.RSSI(i);
+                    dup = true;
+                    break;
+                }
+            }
+            if (!dup) cachedNetworks.push_back({ssid, WiFi.RSSI(i)});
+        }
+        std::sort(cachedNetworks.begin(), cachedNetworks.end(),
+            [](const std::pair<String, int>& a, const std::pair<String, int>& b) {
+                return a.second > b.second;
+            });
+    }
+    WiFi.scanDelete();
+
     // Combined single-page setup: WiFi + CGM source in one form.
     // No JavaScript — CSS :checked selectors handle show/hide.
     // Must complete in <60 seconds (iOS captive portal timeout).
-    auto serveCaptivePortal = [](AsyncWebServerRequest* request) {
-        int n = WiFi.scanNetworks();
+    auto serveCaptivePortal = [cachedNetworks](AsyncWebServerRequest* request) {
+        int n = cachedNetworks.size();
 
         String html =
             "<!DOCTYPE html><html lang=\"en\"><head>"
@@ -577,29 +605,10 @@ void ServerManager_::setupWebServer(IPAddress ip) {
             "<form method=\"POST\" action=\"/api/setup\">"
             "<p class=\"sl\">WiFi network</p>";
 
-        // WiFi network list
+        // WiFi network list (from cached scan at boot, not per-request)
         if (n > 0) {
             html += "<div class=\"nets\">";
-            std::vector<std::pair<String, int>> networks;
-            for (int i = 0; i < n; i++) {
-                String ssid = WiFi.SSID(i);
-                if (ssid.length() == 0) continue;
-                bool dup = false;
-                for (auto& net : networks) {
-                    if (net.first == ssid) {
-                        if (WiFi.RSSI(i) > net.second) net.second = WiFi.RSSI(i);
-                        dup = true;
-                        break;
-                    }
-                }
-                if (!dup) networks.push_back({ssid, WiFi.RSSI(i)});
-            }
-            std::sort(networks.begin(), networks.end(),
-                [](const std::pair<String, int>& a, const std::pair<String, int>& b) {
-                    return a.second > b.second;
-                });
-
-            for (auto& net : networks) {
+            for (const auto& net : cachedNetworks) {
                 int rssi = net.second;
                 String bars;
                 if (rssi > -50) bars = "&#9608;&#9608;&#9608;&#9608;";
@@ -688,7 +697,6 @@ void ServerManager_::setupWebServer(IPAddress ip) {
                 "</form></body></html>";
 
         request->send(200, "text/html", html);
-        WiFi.scanDelete();
     };
 
     // iOS/macOS captive portal detection
