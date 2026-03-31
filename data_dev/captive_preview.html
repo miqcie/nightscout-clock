@@ -1,0 +1,73 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nightscout Clock</title><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a1a;color:#e0e0e0;font-family:-apple-system,system-ui,sans-serif;
+padding:24px 16px;min-height:100vh}
+h1{font-size:20px;font-weight:600;margin-bottom:4px}
+.sub{font-size:13px;color:#888;margin-bottom:24px}
+
+/* Network list */
+.nets{max-height:280px;overflow-y:auto;margin-bottom:8px}
+.net{display:block;padding:14px 0 14px 12px;border-bottom:1px solid #222;cursor:pointer;
+-webkit-tap-highlight-color:transparent}
+.net input[type=radio]{display:none}
+.net .name{font-size:16px;color:#888;transition:color .1s}
+.net .sig{font-size:11px;color:#444;float:right;margin-top:3px;margin-right:4px}
+.net input:checked~.name{color:#fff;font-weight:600}
+.net input:checked~.sig{color:#888}
+
+/* Password section — visually separated from network list */
+.pw-section{margin-top:24px;padding-top:20px;border-top:1px solid #333}
+.pw-section .pw-label{display:block;font-size:12px;color:#888;letter-spacing:.04em;
+text-transform:uppercase;margin-bottom:8px}
+.pw-section input[type=password],
+.pw-section input[type=text]{width:100%;background:rgba(255,255,255,0.05);border:none;
+border-bottom:2px solid #555;color:#fff;font-size:18px;padding:12px 8px;outline:none;
+-webkit-appearance:none;border-radius:0}
+.pw-section input:focus{border-bottom-color:#e0e0e0;background:rgba(255,255,255,0.08)}
+
+/* Buttons */
+button[type=submit]{display:block;width:100%;background:#e0e0e0;color:#1a1a1a;border:none;
+font-size:16px;font-weight:600;padding:14px;cursor:pointer;letter-spacing:.02em;margin-top:24px}
+button[type=submit]:active{background:#fff}
+.manual-toggle{display:block;font-size:13px;color:#555;margin-top:8px;cursor:pointer;
+text-decoration:none;background:none;border:none;padding:4px 0}
+#manual-entry{display:none}
+#manual-entry input[type=text]{width:100%;background:rgba(255,255,255,0.05);border:none;
+border-bottom:2px solid #555;color:#fff;font-size:18px;padding:12px 8px;outline:none;
+-webkit-appearance:none;border-radius:0;margin-top:8px}
+#manual-entry label{font-size:12px;color:#888;letter-spacing:.04em;text-transform:uppercase;
+display:block;margin-top:16px}
+</style></head><body>
+<h1>Nightscout Clock</h1>
+<p class="sub">Connect to your WiFi network</p>
+<form method="POST" action="/api/wifi">
+
+<!-- Simulated network list (would be server-rendered on ESP32) -->
+<div class="nets">
+<label class="net"><input type="radio" name="ssid" value="hcjms"><span class="sig">&#9608;&#9608;&#9608;&#9608;</span><span class="name">hcjms</span></label>
+<label class="net"><input type="radio" name="ssid" value="NETGEAR-5G"><span class="sig">&#9608;&#9608;&#9608;</span><span class="name">NETGEAR-5G</span></label>
+<label class="net"><input type="radio" name="ssid" value="xfinitywifi"><span class="sig">&#9608;&#9608;</span><span class="name">xfinitywifi</span></label>
+<label class="net"><input type="radio" name="ssid" value="Neighbor-WiFi"><span class="sig">&#9608;&#9608;</span><span class="name">Neighbor-WiFi</span></label>
+<label class="net"><input type="radio" name="ssid" value="ATT-WIFI-2G"><span class="sig">&#9608;</span><span class="name">ATT-WIFI-2G</span></label>
+<label class="net"><input type="radio" name="ssid" value="HP-Print-A3"><span class="sig">&#9608;</span><span class="name">HP-Print-A3</span></label>
+<label class="net"><input type="radio" name="ssid" value="Ring-123abc"><span class="sig">&#9608;</span><span class="name">Ring-123abc</span></label>
+</div>
+
+<button type="button" class="manual-toggle"
+onclick="document.getElementById('manual-entry').style.display='block';this.style.display='none'">
+Enter network name manually</button>
+<div id="manual-entry">
+<label for="ssid_manual">Network name</label>
+<input type="text" id="ssid_manual" name="ssid" autocomplete="off">
+</div>
+
+<div class="pw-section">
+<label class="pw-label" for="password">Password</label>
+<input type="password" id="password" name="password" autocomplete="off" placeholder="Enter WiFi password">
+</div>
+
+<button type="submit">Connect</button>
+</form>
+</body></html>
