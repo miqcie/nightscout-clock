@@ -278,6 +278,7 @@ void DisplayManager_::leftButton() {
     } else {
         bgDisplayManager.setFace(bgDisplayManager.getCurrentFaceId() - 1);
     }
+    bgDisplayManager.resetAutoRotateTimer();
 }
 
 // cycle to next face
@@ -287,6 +288,7 @@ void DisplayManager_::rightButton() {
     } else {
         bgDisplayManager.setFace(bgDisplayManager.getCurrentFaceId() + 1);
     }
+    bgDisplayManager.resetAutoRotateTimer();
 }
 
 // decrease brightness if not auto mode

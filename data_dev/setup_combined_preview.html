@@ -1,0 +1,185 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nightscout Clock</title><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a1a;color:#e0e0e0;font-family:-apple-system,system-ui,sans-serif;
+padding:24px 16px 40px;min-height:100vh}
+h1{font-size:20px;font-weight:600;margin-bottom:4px}
+.sub{font-size:13px;color:#888;margin-bottom:24px}
+.section{margin-top:28px;padding-top:20px;border-top:1px solid #333}
+.section-label{font-size:12px;color:#666;letter-spacing:.04em;text-transform:uppercase;margin-bottom:12px}
+
+/* Network list */
+.nets{max-height:240px;overflow-y:auto;margin-bottom:8px}
+.net{display:block;padding:12px 0 12px 12px;border-bottom:1px solid #222;cursor:pointer;
+-webkit-tap-highlight-color:transparent}
+.net input[type=radio]{display:none}
+.net .name{font-size:16px;color:#888}
+.net .sig{font-size:11px;color:#444;float:right;margin-top:3px;margin-right:4px}
+.net input:checked~.name{color:#fff;font-weight:600}
+.net input:checked~.sig{color:#888}
+
+/* Inputs */
+.field{margin-bottom:16px}
+.field-label{display:block;font-size:12px;color:#888;letter-spacing:.04em;
+text-transform:uppercase;margin-bottom:6px}
+input[type=text],input[type=password],input[type=email]{
+width:100%;background:rgba(255,255,255,0.05);border:none;
+border-bottom:2px solid #555;color:#fff;font-size:16px;padding:10px 8px;outline:none;
+-webkit-appearance:none;border-radius:0}
+input:focus{border-bottom-color:#e0e0e0;background:rgba(255,255,255,0.08)}
+select{width:100%;background:rgba(255,255,255,0.05);border:none;
+border-bottom:2px solid #555;color:#e0e0e0;font-size:16px;padding:10px 8px;outline:none;
+-webkit-appearance:none;border-radius:0}
+
+/* CGM source selection — CSS-only show/hide, no JS */
+.cgm-sources{margin-bottom:8px}
+.cgm-source{display:block;padding:14px 0 14px 12px;border-bottom:1px solid #222;cursor:pointer;
+-webkit-tap-highlight-color:transparent}
+.cgm-source input[type=radio]{display:none}
+.cgm-source .cgm-name{font-size:16px;color:#888}
+.cgm-source .cgm-hint{font-size:12px;color:#555;margin-top:1px}
+.cgm-source input:checked~.cgm-name{color:#fff;font-weight:600}
+.cgm-source input:checked~.cgm-hint{color:#888}
+
+/* Visually hide the CGM radio inputs but keep them functional for :checked CSS */
+.cgm-sources>input[type=radio]{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+
+/* CSS-only accordion: fields hidden by default, shown when preceding radio is checked */
+.cgm-fields{display:none;padding:16px 0 8px 12px;border-left:3px solid #333}
+#src_dexcom:checked~#fields_dexcom,
+#src_libre:checked~#fields_libre,
+#src_nightscout:checked~#fields_nightscout{display:block}
+/* Highlight the selected source label */
+#src_dexcom:checked~label[for=src_dexcom] .cgm-name,
+#src_libre:checked~label[for=src_libre] .cgm-name,
+#src_nightscout:checked~label[for=src_nightscout] .cgm-name{color:#fff;font-weight:600}
+#src_dexcom:checked~label[for=src_dexcom],
+#src_libre:checked~label[for=src_libre],
+#src_nightscout:checked~label[for=src_nightscout]{border-left:3px solid #e0e0e0;background:rgba(255,255,255,0.03)}
+
+/* Region radio group */
+.region-group{display:flex;flex-wrap:wrap}
+.region-group label{font-size:14px;color:#888;padding:8px 14px;cursor:pointer;
+border-bottom:2px solid #333;text-transform:none;letter-spacing:normal}
+.region-group input[type=radio]{display:none}
+.region-group input:checked+span{color:#fff;font-weight:600}
+.region-group label:has(input:checked){border-bottom-color:#e0e0e0}
+
+.field-hint{font-size:13px;color:#888;margin-bottom:14px;line-height:1.4}
+.field-hint strong{color:#e0e0e0}
+
+button[type=submit]{display:block;width:100%;background:#e0e0e0;color:#1a1a1a;border:none;
+font-size:16px;font-weight:600;padding:14px;cursor:pointer;letter-spacing:.02em;margin-top:28px}
+button[type=submit]:active{background:#fff}
+</style></head><body>
+
+<h1>Nightscout Clock</h1>
+<p class="sub">One-time setup</p>
+
+<form method="POST" action="/api/setup">
+
+<!-- WiFi -->
+<p class="section-label">WiFi network</p>
+<div class="nets">
+<label class="net"><input type="radio" name="ssid" value="hcjms"><span class="sig">&#9608;&#9608;&#9608;&#9608;</span><span class="name">hcjms</span></label>
+<label class="net"><input type="radio" name="ssid" value="NETGEAR-5G"><span class="sig">&#9608;&#9608;&#9608;</span><span class="name">NETGEAR-5G</span></label>
+<label class="net"><input type="radio" name="ssid" value="xfinitywifi"><span class="sig">&#9608;&#9608;</span><span class="name">xfinitywifi</span></label>
+<label class="net"><input type="radio" name="ssid" value="Neighbor-WiFi"><span class="sig">&#9608;&#9608;</span><span class="name">Neighbor-WiFi</span></label>
+<label class="net"><input type="radio" name="ssid" value="ATT-WIFI-2G"><span class="sig">&#9608;</span><span class="name">ATT-WIFI-2G</span></label>
+</div>
+<div class="field">
+<label class="field-label" for="password">WiFi password</label>
+<input type="password" id="password" name="password" autocomplete="off">
+</div>
+
+<!-- CGM Source -->
+<div class="section">
+<p class="section-label">Glucose data source</p>
+
+<!-- Radio inputs placed as siblings to field divs for CSS :checked targeting -->
+<div class="cgm-sources">
+<input type="radio" name="data_source" value="dexcom" id="src_dexcom">
+<label class="cgm-source" for="src_dexcom">
+<span class="cgm-name">Dexcom</span>
+<span class="cgm-hint">G6, G7, ONE+</span>
+</label>
+
+<input type="radio" name="data_source" value="librelinkup" id="src_libre">
+<label class="cgm-source" for="src_libre">
+<span class="cgm-name">Libre</span>
+<span class="cgm-hint">LibreLinkUp</span>
+</label>
+
+<input type="radio" name="data_source" value="nightscout" id="src_nightscout">
+<label class="cgm-source" for="src_nightscout">
+<span class="cgm-name">Nightscout</span>
+<span class="cgm-hint">Self-hosted or managed</span>
+</label>
+
+<!-- Dexcom fields -->
+<div class="cgm-fields" id="fields_dexcom">
+<div class="field-hint">Use the <strong>sensor wearer's</strong> account, not a follower.</div>
+<div class="field">
+<label class="field-label" for="dexcom_username">Username</label>
+<input type="text" id="dexcom_username" name="dexcom_username" autocomplete="username">
+</div>
+<div class="field">
+<label class="field-label" for="dexcom_password">Password</label>
+<input type="password" id="dexcom_password" name="dexcom_password" autocomplete="current-password">
+</div>
+<div class="field">
+<label class="field-label">Region</label>
+<div class="region-group">
+<label><input type="radio" name="dexcom_server" value="us"><span>US</span></label>
+<label><input type="radio" name="dexcom_server" value="ous"><span>Outside US</span></label>
+<label><input type="radio" name="dexcom_server" value="jp"><span>Japan</span></label>
+</div>
+</div>
+</div>
+
+<!-- Libre fields -->
+<div class="cgm-fields" id="fields_libre">
+<div class="field">
+<label class="field-label" for="libre_email">Email</label>
+<input type="email" id="libre_email" name="librelinkup_email" autocomplete="email">
+</div>
+<div class="field">
+<label class="field-label" for="libre_password">Password</label>
+<input type="password" id="libre_password" name="librelinkup_password" autocomplete="current-password">
+</div>
+<div class="field">
+<label class="field-label" for="libre_region">Region</label>
+<select id="libre_region" name="librelinkup_region">
+<option value="">Choose...</option>
+<option value="US">United States</option>
+<option value="EU">Europe</option>
+<option value="EU2">Europe 2</option>
+<option value="DE">Germany</option>
+<option value="FR">France</option>
+<option value="AU">Australia</option>
+<option value="CA">Canada</option>
+<option value="JP">Japan</option>
+</select>
+</div>
+</div>
+
+<!-- Nightscout fields -->
+<div class="cgm-fields" id="fields_nightscout">
+<div class="field">
+<label class="field-label" for="ns_url">Nightscout URL</label>
+<input type="text" id="ns_url" name="nightscout_url" placeholder="https://yoursite.herokuapp.com">
+</div>
+<div class="field">
+<label class="field-label" for="ns_secret">API secret <span style="text-transform:none;color:#555">(if required)</span></label>
+<input type="password" id="ns_secret" name="api_secret" autocomplete="off">
+</div>
+</div>
+
+</div>
+</div>
+
+<button type="submit">Connect &amp; start</button>
+
+</form>
+</body></html>

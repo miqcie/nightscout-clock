@@ -47,6 +47,10 @@ void BGDisplayManager_::setup() {
     facesNames[4] = "Value and diff";
     faces.push_back(new BGDisplayFaceClock());
     facesNames[5] = "Clock and value";
+    faces.push_back(new BGDisplayFaceRoomTemp());
+    facesNames[6] = "Room temp";
+    faces.push_back(new BGDisplayFaceWeather());
+    facesNames[7] = "Weather";
 
     currentFaceIndex = SettingsManager.settings.default_clockface;
     if (currentFaceIndex >= faces.size()) {
@@ -68,11 +72,28 @@ void BGDisplayManager_::setFace(int id) {
         currentFace = (faces[currentFaceIndex]);
         DisplayManager.clearMatrix();
         lastRefreshEpoch = 0;
-        tick();
+        maybeRrefreshScreen(true);
     }
 }
 
-void BGDisplayManager_::tick() { maybeRrefreshScreen(); }
+void BGDisplayManager_::tick() {
+    // Auto-rotate faces on a timer
+    if (SettingsManager.settings.face_auto_rotate) {
+        unsigned long now = millis();
+        unsigned long intervalMs = (unsigned long)SettingsManager.settings.face_rotate_interval_sec * 1000UL;
+        if (now - lastFaceRotateMs >= intervalMs) {
+            lastFaceRotateMs = now;
+            int nextFace = (currentFaceIndex + 1) % faces.size();
+            setFace(nextFace);
+            return;  // setFace calls maybeRrefreshScreen directly
+        }
+    }
+    maybeRrefreshScreen();
+}
+
+void BGDisplayManager_::resetAutoRotateTimer() {
+    lastFaceRotateMs = millis();
+}
 
 void BGDisplayManager_::maybeRrefreshScreen(bool force) {
     auto currentEpoch = ServerManager.getUtcEpoch();

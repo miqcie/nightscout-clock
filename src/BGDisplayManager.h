@@ -14,6 +14,8 @@
 #include "BGDisplayFaceGraphAndBG.h"
 #include "BGDisplayFaceSimple.h"
 #include "BGDisplayFaceValueAndDiff.h"
+#include "BGDisplayFaceRoomTemp.h"
+#include "BGDisplayFaceWeather.h"
 #include "BGSource.h"
 
 struct GlucoseInterval {
@@ -92,8 +94,11 @@ public:
 
     static void drawTimerBlocks(GlucoseReading lastReading, int width, int xPosition, int yPosition);
 
+    void resetAutoRotateTimer();
+
 private:
     unsigned long long lastRefreshEpoch;
+    unsigned long lastFaceRotateMs = 0;
 };
 
 extern BGDisplayManager_& bgDisplayManager;
