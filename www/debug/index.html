@@ -1,141 +1,220 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <meta charset="utf-8" />
-    <title>Nightscout clock web flasher - Debug Build</title>
-    <meta name="description" content="Easily allow users to install Nightscout clock firmware on the web." />
-    <meta name="viewport" content="width=device-width" />
-    <meta name="color-scheme" content="dark light" />
+    <title>Nightscout Clock Installer - Debug Build</title>
+    <meta name="description"
+        content="Flash the debug build of Nightscout Clock firmware to your Ulanzi TC001." />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
             font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI",
                 Roboto, Ubuntu, sans-serif;
-            padding: 0;
-            margin: 0;
-            line-height: 1.4;
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            line-height: 1.6;
+            min-height: 100vh;
         }
 
-        .content {
-            max-width: 600px;
+        .container {
+            max-width: 640px;
             margin: 0 auto;
-            padding: 12px;
+            padding: 40px 20px;
         }
 
-        h2 {
-            margin-top: 2em;
+        .hero {
+            text-align: center;
+            margin-bottom: 40px;
         }
 
-        h3 {
-            margin-top: 1.5em;
+        .hero h1 {
+            font-size: 2em;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        .hero .subtitle {
+            font-size: 1.1em;
+            color: #a0a0b8;
+        }
+
+        .card {
+            background: #16213e;
+            border: 1px solid #2a2a4a;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .card h2 {
+            font-size: 1.2em;
+            color: #ffffff;
+            margin-bottom: 16px;
+        }
+
+        .steps {
+            list-style: none;
+            counter-reset: steps;
+        }
+
+        .steps li {
+            counter-increment: steps;
+            padding: 10px 0 10px 48px;
+            position: relative;
+            border-bottom: 1px solid #2a2a4a;
+        }
+
+        .steps li:last-child {
+            border-bottom: none;
+        }
+
+        .steps li::before {
+            content: counter(steps);
+            position: absolute;
+            left: 0;
+            top: 10px;
+            width: 32px;
+            height: 32px;
+            background: #0f3460;
+            color: #53a8b6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9em;
+        }
+
+        .install-box {
+            text-align: center;
+            padding: 32px 0;
+        }
+
+        .install-box p {
+            margin-bottom: 20px;
+            color: #a0a0b8;
+            font-size: 0.95em;
         }
 
         a {
-            color: #03a9f4;
+            color: #53a8b6;
+            text-decoration: none;
         }
 
-        .invisible {
-            visibility: hidden;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        esp-web-install-button[install-unsupported] {
-            visibility: inherit;
-        }
-
-        .content pre {
-            max-width: 100%;
-            overflow-y: scroll;
+        a:hover {
+            text-decoration: underline;
         }
 
         .footer {
-            margin-top: 24px;
-            border-top: 1px solid #ccc;
-            padding-top: 24px;
             text-align: center;
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 1px solid #2a2a4a;
+            font-size: 0.85em;
+            color: #666;
         }
 
-        .footer .initiative {
-            font-style: italic;
-            margin-top: 16px;
-        }
-
-        table {
-            border-spacing: 0;
-        }
-
-        td {
-            padding: 8px;
-            border-bottom: 1px solid #ccc;
-        }
-
-        .radios li {
-            list-style: none;
-            line-height: 2em;
+        .footer a {
+            color: #888;
         }
 
         .debug-banner {
-            background-color: #ff9800;
-            color: #000;
-            padding: 12px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-            font-weight: bold;
+            background: #4a2800;
+            border: 1px solid #7a4a00;
+            border-radius: 8px;
+            padding: 14px 20px;
             text-align: center;
+            margin-bottom: 24px;
+            color: #ffb347;
+            font-weight: 600;
         }
 
-        @media (prefers-color-scheme: dark) {
-            body {
-                background-color: #333;
-                color: #fff;
-            }
-
-            a {
-                color: #58a6ff;
-            }
-
-            .debug-banner {
-                background-color: #ff6f00;
-                color: #fff;
-            }
+        .release-link {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 0.85em;
         }
     </style>
-    <script type="module" src="https://unpkg.com/esp-web-tools@8.0.1/dist/web/install-button.js?module"></script>
+    <script type="module"
+        src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
 </head>
 
 <body>
-    <div class="content">
-        <div class="debug-banner">⚠️ DEBUG BUILD - For testing and troubleshooting only</div>
-        <h1>Nightscout clock installer - Debug Build</h1>
-        <p>
-            This is a <strong>debug build</strong> of the <a
-                href="https://github.com/ktomy/nightscout-clock/">Nightscout Clock</a> project.
-            It allows you to transform an Ulanzi TC001 programmable clock into a device showing blood sugar values
-            through <a href="https://github.com/nightscout/cgm-remote-monitor">Nightscout</a>.
-        </p>
-        <p>
-            <strong>⚠️ Warning:</strong> This debug build includes additional logging and debugging features.
-            Use this version only for testing and troubleshooting. For production use, please use the
-            <a href="https://ktomy.github.io/nightscout-clock/">release build</a>.
-        </p>
-        <p>
-            Here are the steps to install the firmware
-        </p>
-        <ul>
-            <li>Buy Ulanzi TC001 from <a
-                    href="https://www.ulanzi.com/products/ulanzi-pixel-smart-clock-2882?aff=1191">here</a>)</li>
-            <li>Turn on the device by pressing &lt; and &gt; buttons for 3 seconds</li>
-            <li>Connect the device to your computer using USB cable</li>
-            <li>Click the <b>CONNECT</b> button below</li>
-            <li>Follow the instructions</li>
-        </ul>
-        <p class="button-row" align="center">
-            <esp-web-install-button manifest="./manifest.json"></esp-web-install-button>
-        </p>
+    <div class="container">
+        <div class="hero">
+            <h1>Nightscout Clock</h1>
+            <p class="subtitle">Debug Build - For testing and troubleshooting</p>
+        </div>
 
+        <div class="debug-banner">
+            This is a debug build with extra logging enabled. For normal use,
+            install the <a href="../">release build</a> instead.
+        </div>
+
+        <div class="card">
+            <h2>Install debug firmware</h2>
+            <ol class="steps">
+                <li>Power on the Ulanzi TC001 by holding the <strong>&lt;</strong> and
+                    <strong>&gt;</strong> buttons for 3 seconds</li>
+                <li>Connect it to this computer with a USB-C cable</li>
+                <li>Click the <strong>Install</strong> button below and select the serial port</li>
+            </ol>
+            <div class="install-box">
+                <p>Ready? Plug in your clock and click Install.</p>
+                <esp-web-install-button manifest="./manifest.json">
+                    <button slot="activate" style="
+                        background: #c97b2a;
+                        color: #fff;
+                        border: none;
+                        padding: 14px 40px;
+                        border-radius: 8px;
+                        font-size: 1.1em;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: background 0.2s;
+                    ">Install Debug Build</button>
+                    <span slot="unsupported">
+                        <div style="
+                            padding: 16px;
+                            background: #3a1a1a;
+                            border: 1px solid #6a2a2a;
+                            border-radius: 8px;
+                            color: #e88;
+                            text-align: center;
+                            margin-top: 12px;
+                        ">
+                            Your browser does not support Web Serial.<br />
+                            Please open this page in <strong>Google Chrome</strong> or
+                            <strong>Microsoft Edge</strong> on a desktop computer.
+                        </div>
+                    </span>
+                </esp-web-install-button>
+            </div>
+        </div>
+
+        <div class="release-link">
+            <a href="../">Back to release build</a>
+        </div>
+
+        <div class="footer">
+            <p>
+                <a href="https://github.com/miqcie/nightscout-clock" target="_blank"
+                    rel="noopener">Source on GitHub</a>
+                &middot;
+                Powered by <a href="https://esphome.github.io/esp-web-tools/" target="_blank"
+                    rel="noopener">ESP Web Tools</a>
+            </p>
+        </div>
+    </div>
 </body>
 
 </html>
