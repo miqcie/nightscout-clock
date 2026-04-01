@@ -76,6 +76,51 @@ void BGDisplayManager_::setFace(int id) {
     }
 }
 
+std::vector<int> BGDisplayManager_::parseEnabledFaces(const String& csv) {
+    std::vector<int> enabled;
+    int start = 0;
+    int commaIndex;
+    while ((commaIndex = csv.indexOf(',', start)) != -1) {
+        int val = csv.substring(start, commaIndex).toInt();
+        if (val >= 0 && val < (int)faces.size()) {
+            enabled.push_back(val);
+        }
+        start = commaIndex + 1;
+    }
+    // last (or only) token
+    if (start < (int)csv.length()) {
+        int val = csv.substring(start).toInt();
+        if (val >= 0 && val < (int)faces.size()) {
+            enabled.push_back(val);
+        }
+    }
+    return enabled;
+}
+
+bool BGDisplayManager_::isFaceEnabled(int faceIndex) {
+    auto enabled = parseEnabledFaces(SettingsManager.settings.face_rotation_enabled_faces);
+    for (int idx : enabled) {
+        if (idx == faceIndex) return true;
+    }
+    return false;
+}
+
+int BGDisplayManager_::getNextEnabledFace(int currentIndex) {
+    auto enabled = parseEnabledFaces(SettingsManager.settings.face_rotation_enabled_faces);
+    if (enabled.empty()) {
+        // Fallback: if nothing enabled, just go to next face
+        return (currentIndex + 1) % faces.size();
+    }
+    // Find current face in enabled list, then pick next
+    for (size_t i = 0; i < enabled.size(); i++) {
+        if (enabled[i] == currentIndex) {
+            return enabled[(i + 1) % enabled.size()];
+        }
+    }
+    // Current face not in enabled list, jump to first enabled face
+    return enabled[0];
+}
+
 void BGDisplayManager_::tick() {
     // Auto-rotate faces on a timer
     if (SettingsManager.settings.face_auto_rotate) {
@@ -83,7 +128,7 @@ void BGDisplayManager_::tick() {
         unsigned long intervalMs = (unsigned long)SettingsManager.settings.face_rotate_interval_sec * 1000UL;
         if (now - lastFaceRotateMs >= intervalMs) {
             lastFaceRotateMs = now;
-            int nextFace = (currentFaceIndex + 1) % faces.size();
+            int nextFace = getNextEnabledFace(currentFaceIndex);
             setFace(nextFace);
             return;  // setFace calls maybeRrefreshScreen directly
         }

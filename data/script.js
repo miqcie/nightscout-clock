@@ -911,6 +911,14 @@
         json['brightness_mode'] = brightnessMode;
         json['brightness_level'] = brightness;
         json['default_face'] = parseInt($('#default_clock_face').val());
+
+        // Face rotation enabled faces
+        var enabledFaces = [];
+        $('.face-rotate-check:checked').each(function() {
+            enabledFaces.push($(this).val());
+        });
+        json['face_rotation_enabled_faces'] = enabledFaces.join(',');
+
         json['tz_libc'] = $('#clock_timezone').val();
         json['tz'] = $('#clock_timezone option:selected').text();
         json['time_format'] = $('#time_format').val();
@@ -1247,6 +1255,13 @@
         // Device settings
         $('#brightness_level').val(json['brightness_level']);
         $('#default_clock_face').val(json['default_face']);
+
+        // Face rotation enabled faces
+        var enabledFacesStr = json['face_rotation_enabled_faces'] || '0,1,2,3,4,5,6,7';
+        var enabledFaces = enabledFacesStr.split(',');
+        $('.face-rotate-check').each(function() {
+            $(this).prop('checked', enabledFaces.indexOf($(this).val()) !== -1);
+        });
 
         $('#time_format').val(json['time_format']);
 

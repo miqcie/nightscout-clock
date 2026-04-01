@@ -96,6 +96,10 @@ public:
 
     void resetAutoRotateTimer();
 
+    int getNextEnabledFace(int currentIndex);
+    bool isFaceEnabled(int faceIndex);
+    std::vector<int> parseEnabledFaces(const String& csv);
+
 private:
     unsigned long long lastRefreshEpoch;
     unsigned long lastFaceRotateMs = 0;

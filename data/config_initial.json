@@ -58,6 +58,7 @@
     "web_auth_password": "",
     "face_auto_rotate": true,
     "face_rotate_interval_sec": 15,
+    "face_rotation_enabled_faces": "0,1,2,3,4,5,6,7",
     "setup_zip": "",
     "weather_lat": 0,
     "weather_lon": 0
