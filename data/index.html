@@ -51,7 +51,7 @@
                         <div class="col-md-6" id="auth_password_block">
                             <label for="auth_login_password" class="form-label">Password</label>
                             <div class="input-group">
-                                <input type="password" class="form-control" id="auth_login_password" />
+                                <input type="password" class="form-control" id="auth_login_password" name="auth_login_password" autocomplete="current-password" />
                                 <button class="btn btn-outline-secondary btn-password-toggle" type="button"
                                     data-target="#auth_login_password" aria-label="Show or hide login password">
                                     <i class="bi bi-eye-slash"></i>
@@ -88,7 +88,7 @@
                             <div class="col-sm-6">
                                 <label for="wifi_password" class="form-label">WiFi password</label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control" id="wifi_password" placeholder=""
+                                    <input type="password" class="form-control" id="wifi_password" name="wifi_password" autocomplete="off" placeholder=""
                                         value="" required />
                                     <button class="btn btn-outline-secondary btn-password-toggle" type="button"
                                         id="toggle_wifi_password_btn" data-target="#wifi_password"
@@ -169,7 +169,7 @@
                             <div class="row">
                                 <div class="col-lg-6 col-md-6 col-12 mb-3 mb-md-0">
                                     <label for="medtrum_email" class="form-label">Medtrum email</label>
-                                    <input type="text" class="form-control" id="medtrum_email" />
+                                    <input type="email" class="form-control" id="medtrum_email" name="medtrum_email" autocomplete="email" />
                                     <div class="invalid-feedback">
                                         Medtrum email is required
                                     </div>
@@ -177,7 +177,7 @@
                                 <div class="col-lg-6 col-md-6 col-12 mb-3 mb-md-0">
                                     <label for="medtrum_password" class="form-label">Medtrum password</label>
                                     <div class="input-group">
-                                        <input type="password" class="form-control" id="medtrum_password" />
+                                        <input type="password" class="form-control" id="medtrum_password" name="medtrum_password" autocomplete="current-password" />
                                         <button class="btn btn-outline-secondary btn-password-toggle" type="button"
                                             data-target="#medtrum_password" aria-label="Show or hide Medtrum password">
                                             <i class="bi bi-eye-slash"></i>
@@ -196,10 +196,13 @@
                     <div class="card">
                         <h5 class="card-header" id="headingTwo">Dexcom connection</h5>
                         <div class="card-body">
+                            <div class="alert alert-info py-2 mb-3" role="alert">
+                                <small>Use the <strong>sensor wearer's</strong> Dexcom account credentials (if you are a parent, use your child's account). Follower accounts will not work.</small>
+                            </div>
                             <div class="row">
                                 <div class="col-lg-5 col-md-6 col-12 mb-3 mb-md-0">
                                     <label for="dexcom_username" class="form-label">Dexcom username</label>
-                                    <input type="text" class="form-control" id="dexcom_username" />
+                                    <input type="text" class="form-control" id="dexcom_username" name="dexcom_username" autocomplete="username" />
                                     <div class="invalid-feedback">
                                         Dexcom username is required
                                     </div>
@@ -207,7 +210,7 @@
                                 <div class="col-lg-5 col-md-6 col-12 mb-3 mb-md-0">
                                     <label for="dexcom_password" class="form-label">Dexcom password</label>
                                     <div class="input-group">
-                                        <input type="password" class="form-control" id="dexcom_password" />
+                                        <input type="password" class="form-control" id="dexcom_password" name="dexcom_password" autocomplete="current-password" />
                                         <button class="btn btn-outline-secondary btn-password-toggle" type="button"
                                             data-target="#dexcom_password" aria-label="Show or hide Dexcom password">
                                             <i class="bi bi-eye-slash"></i>
@@ -277,7 +280,7 @@
                                         <span class="text-body-secondary">(Only needed when viewing Nightscout data is
                                             protected)</span></label>
                                     <div class="input-group">
-                                        <input type="password" class="form-control" id="api_secret" />
+                                        <input type="password" class="form-control" id="api_secret" name="api_secret" autocomplete="off" />
                                         <button class="btn btn-outline-secondary btn-password-toggle" type="button"
                                             data-target="#api_secret" aria-label="Show or hide API secret">
                                             <i class="bi bi-eye-slash"></i>
@@ -312,7 +315,7 @@
                             <div class="row">
                                 <div class="col-lg-5 col-md-6 col-12 mb-3 mb-md-0">
                                     <label for="librelinkup_email" class="form-label">LibreLink Up email</label>
-                                    <input type="text" class="form-control" id="librelinkup_email" />
+                                    <input type="email" class="form-control" id="librelinkup_email" name="librelinkup_email" autocomplete="email" />
                                     <div class="invalid-feedback">
                                         LibreLink Up email is required
                                     </div>
@@ -321,7 +324,7 @@
                                     <label for="librelinkup_password" class="form-label">LibreLink Up
                                         password</label>
                                     <div class="input-group">
-                                        <input type="password" class="form-control" id="librelinkup_password" />
+                                        <input type="password" class="form-control" id="librelinkup_password" name="librelinkup_password" autocomplete="current-password" />
                                         <button class="btn btn-outline-secondary btn-password-toggle" type="button"
                                             data-target="#librelinkup_password"
                                             aria-label="Show or hide LibreLink Up password">
@@ -811,7 +814,7 @@
                                 <label for="additional_wifi_password" class="form-label">WiFi
                                     password</label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control" id="additional_wifi_password"
+                                    <input type="password" class="form-control" id="additional_wifi_password" name="additional_wifi_password" autocomplete="off"
                                         placeholder="" required />
                                     <button class="btn btn-outline-secondary btn-password-toggle" type="button"
                                         data-target="#additional_wifi_password"
@@ -874,7 +877,7 @@
                             <div class="col-md-6">
                                 <label for="web_auth_password" class="form-label">Password</label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control" id="web_auth_password" placeholder="" />
+                                    <input type="password" class="form-control" id="web_auth_password" name="web_auth_password" autocomplete="new-password" placeholder="" />
                                     <button class="btn btn-outline-secondary btn-password-toggle" type="button"
                                         data-target="#web_auth_password"
                                         aria-label="Show or hide web authentication password">
