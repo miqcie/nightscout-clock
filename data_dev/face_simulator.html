@@ -6,23 +6,184 @@
 <title>Nightscout Clock Face Simulator</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#111;color:#e0e0e0;font-family:-apple-system,system-ui,sans-serif;padding:24px;display:flex;flex-direction:column;align-items:center}
-h1{font-size:18px;margin-bottom:4px}
-.sub{font-size:13px;color:#888;margin-bottom:24px}
-.clock-frame{background:#222;border-radius:12px;padding:20px 24px;margin-bottom:24px;box-shadow:0 4px 24px rgba(0,0,0,0.5)}
-.matrix{display:grid;grid-template-columns:repeat(32,1fr);grid-template-rows:repeat(8,1fr);gap:1px;width:384px;height:96px}
-.px{width:11px;height:11px;border-radius:1px;background:#1a1a1a;transition:background .15s}
-.controls{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;justify-content:center}
-.face-btn{background:#2a2a2a;color:#888;border:1px solid #333;padding:8px 16px;cursor:pointer;font-size:13px;border-radius:0}
-.face-btn.active{color:#fff;border-color:#e0e0e0;font-weight:600}
-.face-btn:hover{color:#bbb}
-.info{font-size:13px;color:#666;text-align:center;max-width:400px;margin-top:8px}
-.nav{display:flex;gap:8px;margin-bottom:16px}
-.nav-btn{background:#333;color:#e0e0e0;border:none;padding:8px 20px;cursor:pointer;font-size:14px}
-.nav-btn:active{background:#555}
-.settings{margin-top:16px;display:flex;gap:16px;align-items:center}
-.settings label{font-size:13px;color:#888}
-.settings input{background:#2a2a2a;border:1px solid #444;color:#fff;padding:4px 8px;width:60px;font-size:14px}
+body{background:#0a0a0a;color:#e0e0e0;font-family:-apple-system,system-ui,sans-serif;padding:24px;display:flex;flex-direction:column;align-items:center;min-height:100vh}
+h1{font-size:18px;margin-bottom:4px;letter-spacing:0.5px}
+.sub{font-size:13px;color:#555;margin-bottom:24px}
+
+/* Device frame mimicking the Ulanzi TC001 */
+.device-frame{
+    background:linear-gradient(145deg,#1a1a1a,#111);
+    border-radius:16px;
+    padding:28px 32px;
+    margin-bottom:24px;
+    box-shadow:
+        0 0 0 1px rgba(255,255,255,0.04),
+        0 8px 40px rgba(0,0,0,0.8),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+    position:relative;
+}
+.device-frame::before{
+    content:'';
+    position:absolute;
+    top:8px;left:50%;transform:translateX(-50%);
+    width:40px;height:3px;
+    background:rgba(255,255,255,0.06);
+    border-radius:2px;
+}
+.device-label{
+    position:absolute;
+    bottom:8px;right:16px;
+    font-size:9px;
+    color:rgba(255,255,255,0.12);
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+}
+
+/* LED matrix */
+.matrix{
+    display:grid;
+    grid-template-columns:repeat(32,1fr);
+    grid-template-rows:repeat(8,1fr);
+    gap:2px;
+    width:480px;
+    height:120px;
+    background:#050505;
+    padding:4px;
+    border-radius:4px;
+}
+.px{
+    width:13px;height:13px;
+    border-radius:50%;
+    background:#0d0d0d;
+    transition:background .2s,box-shadow .2s;
+}
+
+/* Controls */
+.controls{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;justify-content:center}
+.face-btn{
+    background:#161616;
+    color:#666;
+    border:1px solid #222;
+    padding:6px 14px;
+    cursor:pointer;
+    font-size:12px;
+    border-radius:6px;
+    transition:all .15s;
+    font-family:inherit;
+}
+.face-btn.active{
+    color:#fff;
+    border-color:#444;
+    background:#222;
+    box-shadow:0 0 12px rgba(255,255,255,0.05);
+}
+.face-btn:hover{color:#aaa;border-color:#333}
+.info{font-size:13px;color:#444;text-align:center;max-width:500px;margin-top:4px}
+
+.nav{display:flex;gap:8px;margin-bottom:16px;align-items:center}
+.nav-btn{
+    background:#1a1a1a;
+    color:#888;
+    border:1px solid #282828;
+    padding:8px 20px;
+    cursor:pointer;
+    font-size:14px;
+    border-radius:6px;
+    font-family:inherit;
+    transition:all .15s;
+}
+.nav-btn:hover{color:#ccc;border-color:#444}
+.nav-btn:active{background:#252525}
+
+/* Auto-play toggle */
+.autoplay-btn{
+    background:#161616;
+    color:#666;
+    border:1px solid #222;
+    padding:8px 16px;
+    cursor:pointer;
+    font-size:13px;
+    border-radius:6px;
+    font-family:inherit;
+    transition:all .2s;
+    display:flex;align-items:center;gap:6px;
+}
+.autoplay-btn.active{
+    color:#00cc44;
+    border-color:#00cc44;
+    background:rgba(0,204,68,0.08);
+}
+.autoplay-btn .dot{
+    width:6px;height:6px;
+    border-radius:50%;
+    background:#444;
+    transition:background .2s;
+}
+.autoplay-btn.active .dot{
+    background:#00cc44;
+    box-shadow:0 0 6px rgba(0,204,68,0.6);
+}
+
+/* Speed slider */
+.speed-control{
+    display:flex;align-items:center;gap:8px;
+    font-size:12px;color:#555;
+}
+.speed-control input[type=range]{
+    -webkit-appearance:none;
+    width:80px;height:3px;
+    background:#333;border-radius:2px;outline:none;
+}
+.speed-control input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:12px;height:12px;
+    background:#888;border-radius:50%;cursor:pointer;
+}
+
+/* Progress bar for auto-play */
+.progress-wrap{
+    width:480px;height:2px;
+    background:#1a1a1a;
+    border-radius:1px;
+    margin-top:8px;
+    margin-bottom:16px;
+    overflow:hidden;
+}
+.progress-bar{
+    height:100%;width:0;
+    background:#00cc44;
+    border-radius:1px;
+    transition:width linear;
+}
+
+/* Settings panel */
+.settings{
+    margin-top:16px;margin-bottom:16px;
+    display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;
+}
+.settings label{font-size:13px;color:#555;display:flex;align-items:center;gap:4px}
+.settings input[type=number],.settings select{
+    background:#161616;
+    border:1px solid #282828;
+    color:#ccc;
+    padding:4px 8px;
+    width:60px;
+    font-size:13px;
+    border-radius:4px;
+    font-family:inherit;
+}
+.settings select{width:auto}
+
+.shortcuts{font-size:11px;color:#333;margin-top:16px;text-align:center}
+.shortcuts kbd{
+    background:#1a1a1a;
+    border:1px solid #282828;
+    border-radius:3px;
+    padding:1px 5px;
+    font-family:inherit;
+    font-size:10px;
+    color:#555;
+}
 </style>
 </head>
 <body>
@@ -41,46 +202,86 @@ h1{font-size:18px;margin-bottom:4px}
 <label>Temp: <input type="number" id="temp_val" value="72" min="0" max="120">&deg;F</label>
 </div>
 
-<div style="height:16px"></div>
-
-<div class="clock-frame">
+<div class="device-frame">
 <div class="matrix" id="matrix"></div>
+<span class="device-label">TC001</span>
 </div>
 
+<div class="progress-wrap"><div class="progress-bar" id="progress"></div></div>
+
 <div class="nav">
-<button class="nav-btn" id="btn_prev">&lt; Prev</button>
-<button class="nav-btn" id="btn_next">Next &gt;</button>
+<button class="nav-btn" id="btn_prev">&larr; Prev</button>
+<button class="autoplay-btn" id="btn_auto"><span class="dot"></span>Auto</button>
+<button class="nav-btn" id="btn_next">Next &rarr;</button>
+<div class="speed-control">
+    <span>1s</span>
+    <input type="range" id="speed_slider" min="1" max="8" value="3" step="0.5">
+    <span>8s</span>
+</div>
 </div>
 
 <div class="controls" id="face_buttons"></div>
 <p class="info" id="face_desc"></p>
 
+<p class="shortcuts">
+    <kbd>&larr;</kbd> <kbd>&rarr;</kbd> switch faces
+    &nbsp;&middot;&nbsp;
+    <kbd>Space</kbd> toggle auto-play
+</p>
+
 <script>
-const W=32,H=8;
-const C={
-    black:'#1a1a1a',green:'#00cc44',red:'#ff2222',yellow:'#cccc00',
+var W=32,H=8;
+var C={
+    black:'#0d0d0d',green:'#00cc44',red:'#ff2222',yellow:'#cccc00',
     white:'#e0e0e0',gray:'#666666',blue:'#2244ff',cyan:'#00cccc',
     orange:'#cc8800'
 };
 
+// Glow color map - soft radial glow per LED color
+var GLOW={
+    '#0d0d0d':'none',
+    '#00cc44':'0 0 6px 2px rgba(0,204,68,0.55),0 0 14px 4px rgba(0,204,68,0.2)',
+    '#ff2222':'0 0 6px 2px rgba(255,34,34,0.55),0 0 14px 4px rgba(255,34,34,0.2)',
+    '#cccc00':'0 0 6px 2px rgba(204,204,0,0.5),0 0 14px 4px rgba(204,204,0,0.18)',
+    '#e0e0e0':'0 0 6px 2px rgba(224,224,224,0.45),0 0 14px 4px rgba(224,224,224,0.15)',
+    '#666666':'0 0 5px 1px rgba(102,102,102,0.4),0 0 10px 3px rgba(102,102,102,0.15)',
+    '#2244ff':'0 0 6px 2px rgba(34,68,255,0.55),0 0 14px 4px rgba(34,68,255,0.2)',
+    '#00cccc':'0 0 6px 2px rgba(0,204,204,0.5),0 0 14px 4px rgba(0,204,204,0.18)',
+    '#cc8800':'0 0 6px 2px rgba(204,136,0,0.5),0 0 14px 4px rgba(204,136,0,0.18)'
+};
+
+function glowFor(color){return GLOW[color]||'none'}
+
 // Create matrix
-const matrix=document.getElementById('matrix');
-const pixels=[];
-for(let y=0;y<H;y++){
+var matrixEl=document.getElementById('matrix');
+var pixels=[];
+for(var y=0;y<H;y++){
     pixels[y]=[];
-    for(let x=0;x<W;x++){
-        const px=document.createElement('div');
+    for(var x=0;x<W;x++){
+        var px=document.createElement('div');
         px.className='px';
-        matrix.appendChild(px);
+        matrixEl.appendChild(px);
         pixels[y][x]=px;
     }
 }
 
-function clear(){for(let y=0;y<H;y++)for(let x=0;x<W;x++)pixels[y][x].style.background=C.black}
-function setPixel(x,y,color){if(x>=0&&x<W&&y>=0&&y<H)pixels[y][x].style.background=color}
+function clear(){
+    for(var y=0;y<H;y++)
+        for(var x=0;x<W;x++){
+            pixels[y][x].style.background=C.black;
+            pixels[y][x].style.boxShadow='none';
+        }
+}
+
+function setPixel(x,y,color){
+    if(x>=0&&x<W&&y>=0&&y<H){
+        pixels[y][x].style.background=color;
+        pixels[y][x].style.boxShadow=glowFor(color);
+    }
+}
 
 // Simple 3x5 font for digits
-const FONT={
+var FONT={
 '0':['111','101','101','101','111'],
 '1':['010','110','010','010','111'],
 '2':['111','001','111','100','111'],
@@ -94,10 +295,10 @@ const FONT={
 '-':['000','000','111','000','000'],
 '.':['000','000','000','000','100'],
 ':':['000','010','000','010','000'],
-' ':['000','000','000','000','000'],
+' ':['000','000','000','000','000']
 };
 // Larger 5x7 font for big text
-const BIGFONT={
+var BIGFONT={
 '0':['01110','10001','10001','10001','10001','10001','01110'],
 '1':['00100','01100','00100','00100','00100','00100','01110'],
 '2':['01110','10001','00001','00110','01000','10000','11111'],
@@ -107,15 +308,15 @@ const BIGFONT={
 '6':['01110','10000','11110','10001','10001','10001','01110'],
 '7':['11111','00001','00010','00100','01000','01000','01000'],
 '8':['01110','10001','10001','01110','10001','10001','01110'],
-'9':['01110','10001','10001','01111','00001','00001','01110'],
+'9':['01110','10001','10001','01111','00001','00001','01110']
 };
 
 function drawChar(ch,x,y,color,big){
-    const font=big?BIGFONT:FONT;
-    const rows=font[ch];
+    var font=big?BIGFONT:FONT;
+    var rows=font[ch];
     if(!rows)return;
-    for(let r=0;r<rows.length;r++){
-        for(let c=0;c<rows[r].length;c++){
+    for(var r=0;r<rows.length;r++){
+        for(var c=0;c<rows[r].length;c++){
             if(rows[r][c]==='1')setPixel(x+c,y-rows.length+1+r,color);
         }
     }
@@ -123,13 +324,13 @@ function drawChar(ch,x,y,color,big){
 }
 
 function drawText(str,x,y,color,big){
-    let cx=x;
-    for(const ch of str){cx+=drawChar(ch,cx,y,color,big)||4;}
+    var cx=x;
+    for(var i=0;i<str.length;i++){cx+=drawChar(str[i],cx,y,color,big)||4;}
 }
 
 function drawTextRight(str,x,y,color,big){
-    const charW=big?6:4;
-    const totalW=str.length*charW-1;
+    var charW=big?6:4;
+    var totalW=str.length*charW-1;
     drawText(str,x-totalW,y,color,big);
 }
 
@@ -141,31 +342,27 @@ function getBgColor(val){
     return C.red;
 }
 
-function getTrendArrow(trend){
-    return{flat:'→',up:'↗',down:'↘',up2:'↑',down2:'↓'}[trend]||'→';
-}
-
-function drawTrendLine(x,trend,color){
-    if(trend==='flat'){setPixel(x,3,color);setPixel(x,4,color)}
-    else if(trend==='up'){setPixel(x,2,color);setPixel(x,3,color)}
-    else if(trend==='down'){setPixel(x,4,color);setPixel(x,5,color)}
-    else if(trend==='up2'){setPixel(x,1,color);setPixel(x,2,color);setPixel(x,3,color)}
-    else if(trend==='down2'){setPixel(x,4,color);setPixel(x,5,color);setPixel(x,6,color)}
+function drawTrendLine(x,t,color){
+    if(t==='flat'){setPixel(x,3,color);setPixel(x,4,color)}
+    else if(t==='up'){setPixel(x,2,color);setPixel(x,3,color)}
+    else if(t==='down'){setPixel(x,4,color);setPixel(x,5,color)}
+    else if(t==='up2'){setPixel(x,1,color);setPixel(x,2,color);setPixel(x,3,color)}
+    else if(t==='down2'){setPixel(x,4,color);setPixel(x,5,color);setPixel(x,6,color)}
 }
 
 function drawTimerBlocks(x,w,color){
-    const blocks=3;
-    const bw=Math.floor((w-4)/5);
-    for(let i=0;i<blocks;i++){
-        for(let j=0;j<bw;j++)setPixel(x+i*(bw+1)+j,7,color);
+    var blocks=3;
+    var bw=Math.floor((w-4)/5);
+    for(var i=0;i<blocks;i++){
+        for(var j=0;j<bw;j++)setPixel(x+i*(bw+1)+j,7,color);
     }
 }
 
 // Graph data (simulated last 30 readings)
 function generateGraph(currentBg){
-    const data=[];
-    let v=currentBg-20+Math.random()*10;
-    for(let i=0;i<30;i++){
+    var data=[];
+    var v=currentBg-20+Math.random()*10;
+    for(var i=0;i<30;i++){
         v+=Math.random()*8-4;
         v=Math.max(50,Math.min(300,v));
         data.push(v);
@@ -175,123 +372,196 @@ function generateGraph(currentBg){
 }
 
 function drawGraph(data,x,w,yOff,h,color){
-    const min=Math.min(...data)-10;
-    const max=Math.max(...data)+10;
-    const range=max-min||1;
-    const step=Math.max(1,Math.floor(data.length/w));
-    for(let i=0;i<w;i++){
-        const idx=Math.min(data.length-1,Math.floor(i*data.length/w));
-        const val=data[idx];
-        const py=yOff+h-1-Math.round((val-min)/range*(h-1));
+    var min=Math.min.apply(null,data)-10;
+    var max=Math.max.apply(null,data)+10;
+    var range=max-min||1;
+    for(var i=0;i<w;i++){
+        var idx=Math.min(data.length-1,Math.floor(i*data.length/w));
+        var val=data[idx];
+        var py=yOff+h-1-Math.round((val-min)/range*(h-1));
         setPixel(x+i,py,color);
     }
 }
 
-const bg=()=>parseInt(document.getElementById('bg_val').value)||127;
-const trend=()=>document.getElementById('trend_val').value;
-const temp=()=>parseInt(document.getElementById('temp_val').value)||72;
+function bg(){return parseInt(document.getElementById('bg_val').value)||127}
+function trend(){return document.getElementById('trend_val').value}
+function temp(){return parseInt(document.getElementById('temp_val').value)||72}
 
-const faces=[
-{name:'Simple',desc:'BG reading with trend indicator',draw(){
-    const v=bg(),color=getBgColor(v);
+var faces=[
+{name:'Simple',desc:'BG reading with trend indicator',draw:function(){
+    var v=bg(),color=getBgColor(v);
     drawTextRight(String(v),30,6,color);
     drawTrendLine(31,trend(),color);
     drawTimerBlocks(0,16,C.green);
 }},
-{name:'Full graph',desc:'30-minute BG trend graph, full width',draw(){
-    const data=generateGraph(bg());
+{name:'Full graph',desc:'30-minute BG trend graph, full width',draw:function(){
+    var data=generateGraph(bg());
     drawGraph(data,0,32,0,7,getBgColor(bg()));
     drawTimerBlocks(0,32,C.green);
 }},
-{name:'Graph and BG',desc:'BG graph on left, reading on right',draw(){
-    const v=bg(),color=getBgColor(v);
-    const data=generateGraph(v);
+{name:'Graph and BG',desc:'BG graph on left, reading on right',draw:function(){
+    var v=bg(),color=getBgColor(v);
+    var data=generateGraph(v);
     drawGraph(data,0,18,0,7,color);
     drawTextRight(String(v),30,6,color);
     drawTrendLine(31,trend(),color);
     drawTimerBlocks(18,14,C.green);
 }},
-{name:'Big text',desc:'Large BG number with trend indicator',draw(){
-    const v=bg(),color=getBgColor(v);
-    const s=String(v);
-    const totalW=s.length*6-1;
-    const startX=Math.floor((32-totalW)/2);
+{name:'Big text',desc:'Large BG number with trend indicator',draw:function(){
+    var v=bg(),color=getBgColor(v);
+    var s=String(v);
+    var totalW=s.length*6-1;
+    var startX=Math.floor((32-totalW)/2);
     drawText(s,startX,7,color,true);
     drawTrendLine(31,trend(),color);
 }},
-{name:'Value and diff',desc:'BG reading with change since last reading',draw(){
-    const v=bg(),color=getBgColor(v);
+{name:'Value and diff',desc:'BG reading with change since last reading',draw:function(){
+    var v=bg(),color=getBgColor(v);
     drawText(String(v),0,6,color);
-    const diff=trend()==='up'?'+5':trend()==='down'?'-8':'+1';
+    var diff=trend()==='up'?'+5':trend()==='down'?'-8':'+1';
     drawTextRight(diff,30,6,C.gray);
     drawTimerBlocks(0,32,C.green);
 }},
-{name:'Clock and value',desc:'Current time on left, BG on right',draw(){
-    const now=new Date();
-    const h=String(now.getHours()).padStart(2,'0');
-    const m=String(now.getMinutes()).padStart(2,'0');
+{name:'Clock and value',desc:'Current time on left, BG on right',draw:function(){
+    var now=new Date();
+    var h=String(now.getHours()).padStart(2,'0');
+    var m=String(now.getMinutes()).padStart(2,'0');
     drawText(h,0,6,C.white);
     drawText(m,9,6,C.white);
-    const v=bg(),color=getBgColor(v);
+    var v=bg(),color=getBgColor(v);
     drawTextRight(String(v),30,6,color);
     drawTrendLine(31,trend(),color);
     drawTimerBlocks(0,32,C.green);
 }},
-{name:'Room temp',desc:'Indoor temperature (SHT31 sensor) + BG reading',draw(){
-    const t=temp();
-    let tColor=C.green;
+{name:'Room temp',desc:'Indoor temperature (SHT31 sensor) + BG reading',draw:function(){
+    var t=temp();
+    var tColor=C.green;
     if(t<65)tColor=C.cyan;
     else if(t>85)tColor=C.red;
     else if(t>80)tColor=C.yellow;
     drawText(String(t),0,6,tColor);
-    const v=bg(),color=getBgColor(v);
+    var v=bg(),color=getBgColor(v);
     drawTextRight(String(v),30,6,color);
     drawTrendLine(31,trend(),color);
-    // Humidity bar
-    const hum=14;
-    for(let i=0;i<hum;i++)setPixel(i,7,C.blue);
+    var hum=14;
+    for(var i=0;i<hum;i++)setPixel(i,7,C.blue);
     drawTimerBlocks(18,14,C.green);
 }},
-{name:'Weather',desc:'Outdoor temperature (Open-Meteo) + BG reading',draw(){
-    const t=temp()-5; // outdoor slightly cooler
-    let tColor=C.yellow; // clear sky
+{name:'Weather',desc:'Outdoor temperature (Open-Meteo) + BG reading',draw:function(){
+    var t=temp()-5;
+    var tColor=C.yellow;
     drawText(String(t),0,6,tColor);
-    // Weather indicator dots
-    for(let i=0;i<3;i++)setPixel(i,7,tColor);
-    const v=bg(),color=getBgColor(v);
+    for(var i=0;i<3;i++)setPixel(i,7,tColor);
+    var v=bg(),color=getBgColor(v);
     drawTextRight(String(v),30,6,color);
     drawTrendLine(31,trend(),color);
     drawTimerBlocks(18,14,C.green);
-}},
+}}
 ];
 
-let currentFace=0;
+var currentFace=0;
+var autoPlaying=false;
+var autoTimer=null;
+
+function getSpeed(){
+    return parseFloat(document.getElementById('speed_slider').value)*1000;
+}
 
 function renderFace(idx){
     clear();
     currentFace=idx;
     faces[idx].draw();
-    document.getElementById('face_desc').textContent=`#${idx}: ${faces[idx].name} — ${faces[idx].desc}`;
-    document.querySelectorAll('.face-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
+    document.getElementById('face_desc').textContent='#'+idx+': '+faces[idx].name+' \u2014 '+faces[idx].desc;
+    var btns=document.querySelectorAll('.face-btn');
+    for(var i=0;i<btns.length;i++)btns[i].classList.toggle('active',i===idx);
+}
+
+function startProgress(){
+    var bar=document.getElementById('progress');
+    bar.style.transition='none';
+    bar.style.width='0%';
+    void bar.offsetWidth;
+    bar.style.transition='width '+getSpeed()+'ms linear';
+    bar.style.width='100%';
+}
+
+function stopProgress(){
+    var bar=document.getElementById('progress');
+    bar.style.transition='none';
+    bar.style.width='0%';
+}
+
+function autoNext(){
+    renderFace((currentFace+1)%faces.length);
+    startProgress();
+}
+
+function toggleAutoPlay(){
+    autoPlaying=!autoPlaying;
+    document.getElementById('btn_auto').classList.toggle('active',autoPlaying);
+    if(autoPlaying){
+        startProgress();
+        autoTimer=setInterval(autoNext,getSpeed());
+    }else{
+        clearInterval(autoTimer);
+        autoTimer=null;
+        stopProgress();
+    }
+}
+
+function restartAutoIfPlaying(){
+    if(autoPlaying){
+        clearInterval(autoTimer);
+        stopProgress();
+        startProgress();
+        autoTimer=setInterval(autoNext,getSpeed());
+    }
 }
 
 // Build face buttons
-const btnContainer=document.getElementById('face_buttons');
-faces.forEach((f,i)=>{
-    const btn=document.createElement('button');
-    btn.className='face-btn';
-    btn.textContent=`${i}: ${f.name}`;
-    btn.onclick=()=>renderFace(i);
-    btnContainer.appendChild(btn);
-});
+var btnContainer=document.getElementById('face_buttons');
+for(var i=0;i<faces.length;i++){
+    (function(idx){
+        var btn=document.createElement('button');
+        btn.className='face-btn';
+        btn.textContent=idx+': '+faces[idx].name;
+        btn.onclick=function(){renderFace(idx);restartAutoIfPlaying()};
+        btnContainer.appendChild(btn);
+    })(i);
+}
 
-document.getElementById('btn_prev').onclick=()=>renderFace((currentFace-1+faces.length)%faces.length);
-document.getElementById('btn_next').onclick=()=>renderFace((currentFace+1)%faces.length);
+document.getElementById('btn_prev').onclick=function(){
+    renderFace((currentFace-1+faces.length)%faces.length);
+    restartAutoIfPlaying();
+};
+document.getElementById('btn_next').onclick=function(){
+    renderFace((currentFace+1)%faces.length);
+    restartAutoIfPlaying();
+};
+document.getElementById('btn_auto').onclick=toggleAutoPlay;
+document.getElementById('speed_slider').oninput=function(){
+    restartAutoIfPlaying();
+};
 
 // Re-render on settings change
-document.getElementById('bg_val').oninput=()=>renderFace(currentFace);
-document.getElementById('trend_val').onchange=()=>renderFace(currentFace);
-document.getElementById('temp_val').oninput=()=>renderFace(currentFace);
+document.getElementById('bg_val').oninput=function(){renderFace(currentFace)};
+document.getElementById('trend_val').onchange=function(){renderFace(currentFace)};
+document.getElementById('temp_val').oninput=function(){renderFace(currentFace)};
+
+// Keyboard shortcuts
+document.addEventListener('keydown',function(e){
+    if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;
+    if(e.key==='ArrowLeft'){
+        renderFace((currentFace-1+faces.length)%faces.length);
+        restartAutoIfPlaying();
+    }else if(e.key==='ArrowRight'){
+        renderFace((currentFace+1)%faces.length);
+        restartAutoIfPlaying();
+    }else if(e.key===' '){
+        e.preventDefault();
+        toggleAutoPlay();
+    }
+});
 
 renderFace(0);
 </script>
