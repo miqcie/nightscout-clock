@@ -511,6 +511,16 @@ void ServerManager_::setupWebServer(IPAddress ip) {
         request->send(LittleFS, CONFIG_JSON, "application/json");
     });
 
+    // Captive portal detection routes.
+    // Android and Chrome OS check /generate_204, Windows checks /connecttest.txt.
+    // iOS/macOS checks /hotspot-detect.html, handled via static file in data/.
+    ws->on("/generate_204", HTTP_GET, [](AsyncWebServerRequest* request) {
+        request->redirect("/");
+    });
+    ws->on("/connecttest.txt", HTTP_GET, [](AsyncWebServerRequest* request) {
+        request->redirect("/");
+    });
+
     addStaticFileHandler();
 
     ws->onNotFound([](AsyncWebServerRequest* request) {
