@@ -20,7 +20,6 @@ BGDisplayManager_& bgDisplayManager = bgDisplayManager.getInstance();
 
 void BGDisplayManager_::setup() {
     glucoseIntervals = GlucoseIntervals();
-    /// TODO: Add urgent values to settings
 
     glucoseIntervals.addInterval(1, SettingsManager.settings.bg_low_urgent_limit, BG_LEVEL::URGENT_LOW);
     glucoseIntervals.addInterval(
@@ -35,21 +34,30 @@ void BGDisplayManager_::setup() {
     glucoseIntervals.addInterval(
         SettingsManager.settings.bg_high_urgent_limit, 401, BG_LEVEL::URGENT_HIGH);
 
-    faces.push_back(new BGDisplayFaceSimple());
+    static BGDisplayFaceSimple faceSimple;
+    static BGDisplayFaceGraph faceGraph;
+    static BGDisplayFaceGraphAndBG faceGraphAndBG;
+    static BGDisplayFaceBigText faceBigText;
+    static BGDisplayFaceValueAndDiff faceValueAndDiff;
+    static BGDisplayFaceClock faceClock;
+    static BGDisplayFaceRoomTemp faceRoomTemp;
+    static BGDisplayFaceWeather faceWeather;
+
+    faces.push_back(&faceSimple);
     facesNames[0] = "Simple";
-    faces.push_back(new BGDisplayFaceGraph());
+    faces.push_back(&faceGraph);
     facesNames[1] = "Full graph";
-    faces.push_back(new BGDisplayFaceGraphAndBG());
+    faces.push_back(&faceGraphAndBG);
     facesNames[2] = "Graph and BG";
-    faces.push_back(new BGDisplayFaceBigText());
+    faces.push_back(&faceBigText);
     facesNames[3] = "Big text";
-    faces.push_back(new BGDisplayFaceValueAndDiff());
+    faces.push_back(&faceValueAndDiff);
     facesNames[4] = "Value and diff";
-    faces.push_back(new BGDisplayFaceClock());
+    faces.push_back(&faceClock);
     facesNames[5] = "Clock and value";
-    faces.push_back(new BGDisplayFaceRoomTemp());
+    faces.push_back(&faceRoomTemp);
     facesNames[6] = "Room temp";
-    faces.push_back(new BGDisplayFaceWeather());
+    faces.push_back(&faceWeather);
     facesNames[7] = "Weather";
 
     currentFaceIndex = SettingsManager.settings.default_clockface;

@@ -98,6 +98,37 @@ bool SettingsManager_::loadSettingsFromFile() {
     settings.bg_high_warn_limit = (*doc)["high_mgdl"].as<int>();
     settings.bg_low_urgent_limit = (*doc)["low_urgent_mgdl"].as<int>();
     settings.bg_high_urgent_limit = (*doc)["high_urgent_mgdl"].as<int>();
+
+    // Validate BG thresholds: clamp to physiological ranges and enforce ordering
+    if (settings.bg_low_urgent_limit < 40 || settings.bg_low_urgent_limit > 100) {
+        DEBUG_PRINTF("bg_low_urgent_limit %d out of range [40-100], defaulting to 55",
+                     settings.bg_low_urgent_limit);
+        settings.bg_low_urgent_limit = 55;
+    }
+    if (settings.bg_low_warn_limit < 50 || settings.bg_low_warn_limit > 120) {
+        DEBUG_PRINTF("bg_low_warn_limit %d out of range [50-120], defaulting to 70",
+                     settings.bg_low_warn_limit);
+        settings.bg_low_warn_limit = 70;
+    }
+    if (settings.bg_high_warn_limit < 120 || settings.bg_high_warn_limit > 300) {
+        DEBUG_PRINTF("bg_high_warn_limit %d out of range [120-300], defaulting to 180",
+                     settings.bg_high_warn_limit);
+        settings.bg_high_warn_limit = 180;
+    }
+    if (settings.bg_high_urgent_limit < 150 || settings.bg_high_urgent_limit > 400) {
+        DEBUG_PRINTF("bg_high_urgent_limit %d out of range [150-400], defaulting to 250",
+                     settings.bg_high_urgent_limit);
+        settings.bg_high_urgent_limit = 250;
+    }
+    // Enforce ordering: low_urgent < low_warn < high_warn < high_urgent
+    if (settings.bg_low_urgent_limit >= settings.bg_low_warn_limit) {
+        DEBUG_PRINTLN("bg_low_urgent_limit >= bg_low_warn_limit, adjusting urgent to warn - 1");
+        settings.bg_low_urgent_limit = settings.bg_low_warn_limit - 1;
+    }
+    if (settings.bg_high_warn_limit >= settings.bg_high_urgent_limit) {
+        DEBUG_PRINTLN("bg_high_warn_limit >= bg_high_urgent_limit, adjusting urgent to warn + 1");
+        settings.bg_high_urgent_limit = settings.bg_high_warn_limit + 1;
+    }
     settings.bg_units = (*doc)["units"].as<String>() == "mmol" ? BG_UNIT::MMOLL : BG_UNIT::MGDL;
 
     String brightness_mode = (*doc)["brightness_mode"].as<String>();
@@ -114,6 +145,11 @@ bool SettingsManager_::loadSettingsFromFile() {
     }
 
     settings.brightness_level = (*doc)["brightness_level"].as<int>() - 1;
+    if (settings.brightness_level < 0 || settings.brightness_level > 15) {
+        DEBUG_PRINTF("brightness_level %d out of range [0-15], defaulting to 7",
+                     settings.brightness_level);
+        settings.brightness_level = 7;
+    }
     settings.default_clockface = (*doc)["default_face"].as<int>();
 
     String data_source = (*doc)["data_source"].as<String>();
@@ -179,6 +215,24 @@ bool SettingsManager_::loadSettingsFromFile() {
     settings.alarm_low_melody = (*doc)["alarm_low_melody"].as<String>();
     settings.alarm_urgent_low_melody = (*doc)["alarm_urgent_low_melody"].as<String>();
     settings.alarm_intensive_mode = (*doc)["alarm_intensive_mode"].as<bool>();
+
+    // Validate alarm snooze intervals (1-60 minutes)
+    if (settings.alarm_urgent_low_snooze_minutes < 1 ||
+        settings.alarm_urgent_low_snooze_minutes > 60) {
+        DEBUG_PRINTF("alarm_urgent_low_snooze %d out of range [1-60], defaulting to 5",
+                     settings.alarm_urgent_low_snooze_minutes);
+        settings.alarm_urgent_low_snooze_minutes = 5;
+    }
+    if (settings.alarm_low_snooze_minutes < 1 || settings.alarm_low_snooze_minutes > 60) {
+        DEBUG_PRINTF("alarm_low_snooze %d out of range [1-60], defaulting to 5",
+                     settings.alarm_low_snooze_minutes);
+        settings.alarm_low_snooze_minutes = 5;
+    }
+    if (settings.alarm_high_snooze_minutes < 1 || settings.alarm_high_snooze_minutes > 60) {
+        DEBUG_PRINTF("alarm_high_snooze %d out of range [1-60], defaulting to 5",
+                     settings.alarm_high_snooze_minutes);
+        settings.alarm_high_snooze_minutes = 5;
+    }
 
     // Additional WiFi
     settings.additional_wifi_enable = (*doc)["additional_wifi_enable"].as<bool>();
