@@ -58,6 +58,8 @@ void BGDisplayManager_::setup() {
     }
 
     currentFace = (faces[currentFaceIndex]);
+
+    refreshCachedEnabledFaces();
 }
 
 std::map<int, String> BGDisplayManager_::getFaces() { return facesNames; }
@@ -76,6 +78,57 @@ void BGDisplayManager_::setFace(int id) {
     }
 }
 
+std::vector<int> BGDisplayManager_::parseEnabledFaces(const String& csv) {
+    std::vector<int> enabled;
+    int start = 0;
+    int commaIndex;
+    while ((commaIndex = csv.indexOf(',', start)) != -1) {
+        String token = csv.substring(start, commaIndex);
+        token.trim();
+        int val = token.toInt();
+        if (token.length() > 0 && (val != 0 || token == "0") && val >= 0 && val < (int)faces.size()) {
+            enabled.push_back(val);
+        }
+        start = commaIndex + 1;
+    }
+    // last (or only) token
+    if (start < (int)csv.length()) {
+        String token = csv.substring(start);
+        token.trim();
+        int val = token.toInt();
+        if (token.length() > 0 && (val != 0 || token == "0") && val >= 0 && val < (int)faces.size()) {
+            enabled.push_back(val);
+        }
+    }
+    return enabled;
+}
+
+void BGDisplayManager_::refreshCachedEnabledFaces() {
+    cachedEnabledFaces = parseEnabledFaces(SettingsManager.settings.face_rotation_enabled_faces);
+}
+
+bool BGDisplayManager_::isFaceEnabled(int faceIndex) {
+    for (int idx : cachedEnabledFaces) {
+        if (idx == faceIndex) return true;
+    }
+    return false;
+}
+
+int BGDisplayManager_::getNextEnabledFace(int currentIndex) {
+    if (cachedEnabledFaces.empty()) {
+        // Fallback: if nothing enabled, just go to next face
+        return (currentIndex + 1) % faces.size();
+    }
+    // Find current face in enabled list, then pick next
+    for (size_t i = 0; i < cachedEnabledFaces.size(); i++) {
+        if (cachedEnabledFaces[i] == currentIndex) {
+            return cachedEnabledFaces[(i + 1) % cachedEnabledFaces.size()];
+        }
+    }
+    // Current face not in enabled list, jump to first enabled face
+    return cachedEnabledFaces[0];
+}
+
 void BGDisplayManager_::tick() {
     // Auto-rotate faces on a timer
     if (SettingsManager.settings.face_auto_rotate) {
@@ -83,7 +136,7 @@ void BGDisplayManager_::tick() {
         unsigned long intervalMs = (unsigned long)SettingsManager.settings.face_rotate_interval_sec * 1000UL;
         if (now - lastFaceRotateMs >= intervalMs) {
             lastFaceRotateMs = now;
-            int nextFace = (currentFaceIndex + 1) % faces.size();
+            int nextFace = getNextEnabledFace(currentFaceIndex);
             setFace(nextFace);
             return;  // setFace calls maybeRrefreshScreen directly
         }

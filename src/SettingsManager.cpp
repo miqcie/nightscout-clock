@@ -214,6 +214,11 @@ bool SettingsManager_::loadSettingsFromFile() {
     if (settings.face_rotate_interval_sec < 5 || settings.face_rotate_interval_sec > 120) {
         settings.face_rotate_interval_sec = 15;  // default 15 seconds
     }
+    if ((*doc)["face_rotation_enabled_faces"].is<const char*>() && strlen((*doc)["face_rotation_enabled_faces"].as<const char*>()) > 0) {
+        settings.face_rotation_enabled_faces = (*doc)["face_rotation_enabled_faces"].as<String>();
+    } else {
+        settings.face_rotation_enabled_faces = "0,1,2,3,4,5,6,7";  // all faces enabled by default
+    }
 
     // Location (from zip code geocoding)
     settings.setup_zip = (*doc)["setup_zip"].as<String>();
@@ -345,6 +350,7 @@ bool SettingsManager_::saveSettingsToFile() {
     // Face auto-rotate
     (*doc)["face_auto_rotate"] = settings.face_auto_rotate;
     (*doc)["face_rotate_interval_sec"] = settings.face_rotate_interval_sec;
+    (*doc)["face_rotation_enabled_faces"] = settings.face_rotation_enabled_faces;
 
     // Location (from zip code geocoding)
     (*doc)["setup_zip"] = settings.setup_zip;

@@ -7,6 +7,7 @@
 #include <WiFi.h>
 #include <esp_system.h>
 
+#include "BGDisplayManager.h"
 #include "BGSourceManager.h"
 #include "DisplayManager.h"
 #include "PeripheryManager.h"
@@ -391,6 +392,7 @@ void ServerManager_::setupWebServer(IPAddress ip) {
             }
             auto&& data = json.as<JsonObject>();
             if (SettingsManager.trySaveJsonAsSettings(data)) {
+                bgDisplayManager.refreshCachedEnabledFaces();
                 request->send(200, "application/json", "{\"status\": \"ok\"}");
             } else {
                 request->send(200, "application/json", "{\"status\": \"Settings save error\"}");

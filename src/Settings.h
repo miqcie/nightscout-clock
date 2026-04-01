@@ -61,6 +61,7 @@ public:
     String web_auth_password;
     bool face_auto_rotate = true;
     int face_rotate_interval_sec = 15;
+    String face_rotation_enabled_faces = "0,1,2,3,4,5,6,7";
     String setup_zip;
     float weather_lat = 0;
     float weather_lon = 0;

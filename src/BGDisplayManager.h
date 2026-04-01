@@ -77,6 +77,11 @@ private:
     int currentFaceIndex;
     GlucoseIntervals glucoseIntervals;
     std::map<int, String> facesNames;
+    std::vector<int> cachedEnabledFaces;
+
+    int getNextEnabledFace(int currentIndex);
+    bool isFaceEnabled(int faceIndex);
+    std::vector<int> parseEnabledFaces(const String& csv);
 
 public:
     static BGDisplayManager_& getInstance();
@@ -95,6 +100,7 @@ public:
     static void drawTimerBlocks(GlucoseReading lastReading, int width, int xPosition, int yPosition);
 
     void resetAutoRotateTimer();
+    void refreshCachedEnabledFaces();
 
 private:
     unsigned long long lastRefreshEpoch;
