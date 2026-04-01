@@ -28,6 +28,7 @@ private:
     String webAuthToken;
     unsigned long webAuthTokenIssuedMs = 0;
     bool pendingRestart = false;
+    bool pendingFactoryReset = false;
     unsigned long pendingRestartMs = 0;
 
 public:

@@ -492,8 +492,8 @@ void ServerManager_::setupWebServer(IPAddress ip) {
             return;
         }
         request->send(200, "application/json", "{\"status\": \"ok\"}");
-        delay(1000);
-        SettingsManager.factoryReset();
+        pendingFactoryReset = true;
+        pendingRestartMs = millis();
     });
 
     // api call which returns status (isConnected, internet is reacheable, is in AP mode, bg source type
@@ -984,7 +984,10 @@ void ServerManager_::setup() {
 
 void ServerManager_::tick() {
     // Deferred restart: allow async response to flush before rebooting
-    if (pendingRestart && (millis() - pendingRestartMs > 2000)) {
+    if ((pendingRestart || pendingFactoryReset) && (millis() - pendingRestartMs > 2000)) {
+        if (pendingFactoryReset) {
+            SettingsManager.factoryReset();  // copies factory config, then restarts
+        }
         LittleFS.end();
         ESP.restart();
     }

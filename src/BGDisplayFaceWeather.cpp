@@ -38,8 +38,13 @@ static String ianaToPosix(const String& iana) {
     return "";  // unknown — caller should leave timezone unchanged
 }
 
-// One-time geocoding: resolve zip code to lat/lon + timezone after WiFi connects
+// Geocoding: resolve zip code to lat/lon + timezone after WiFi connects.
+// Retries up to 3 times with 30s backoff — WiFi may still be stabilizing at first boot.
 static bool zipResolved = false;
+static int zipResolveAttempts = 0;
+static const int MAX_ZIP_ATTEMPTS = 3;
+static unsigned long lastZipAttemptMs = 0;
+
 void BGDisplayFaceWeather::resolveZipLocation() {
     if (zipResolved) return;
     if (SettingsManager.settings.setup_zip.length() == 0) return;
@@ -47,6 +52,16 @@ void BGDisplayFaceWeather::resolveZipLocation() {
         zipResolved = true;  // already resolved in a previous boot
         return;
     }
+    // Backoff: wait 30s between attempts
+    if (zipResolveAttempts > 0 && (millis() - lastZipAttemptMs) < 30000UL) return;
+    if (zipResolveAttempts >= MAX_ZIP_ATTEMPTS) {
+        DEBUG_PRINTF("Zip geocoding gave up after %d attempts, using fallback location", MAX_ZIP_ATTEMPTS);
+        zipResolved = true;
+        return;
+    }
+
+    lastZipAttemptMs = millis();
+    zipResolveAttempts++;
 
     HTTPClient http;
     String url = "https://geocoding-api.open-meteo.com/v1/search?name=" +
@@ -70,19 +85,24 @@ void BGDisplayFaceWeather::resolveZipLocation() {
                 SettingsManager.settings.tz_libc_value = posix;
                 setenv("TZ", posix.c_str(), 1);
                 tzset();
+            } else if (posix.length() == 0) {
+                DEBUG_PRINTF("Unrecognized timezone '%s' from geocoding, clock time may be wrong", iana.c_str());
             }
 
-            SettingsManager.saveSettingsToFile();
+            if (!SettingsManager.saveSettingsToFile()) {
+                DEBUG_PRINTLN("WARNING: Resolved zip location but failed to save to flash");
+            }
             DEBUG_PRINTF("Zip resolved: %.4f, %.4f, tz=%s",
                 SettingsManager.settings.weather_lat,
                 SettingsManager.settings.weather_lon, iana.c_str());
+            zipResolved = true;
         }
     } else {
-        DEBUG_PRINTF("Zip geocoding failed, HTTP %d", httpCode);
+        DEBUG_PRINTF("Zip geocoding attempt %d/%d failed, HTTP %d",
+            zipResolveAttempts, MAX_ZIP_ATTEMPTS, httpCode);
     }
 
     http.end();
-    zipResolved = true;  // don't retry on failure — user can fix via full settings
 }
 
 void BGDisplayFaceWeather::fetchWeather() {
