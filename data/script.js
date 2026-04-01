@@ -917,6 +917,11 @@
         $('.face-rotate-check:checked').each(function() {
             enabledFaces.push($(this).val());
         });
+        if (enabledFaces.length === 0) {
+            alert('At least one clock face must be enabled. Defaulting to face 0.');
+            enabledFaces.push('0');
+            $('.face-rotate-check').filter('[value="0"]').prop('checked', true);
+        }
         json['face_rotation_enabled_faces'] = enabledFaces.join(',');
 
         json['tz_libc'] = $('#clock_timezone').val();

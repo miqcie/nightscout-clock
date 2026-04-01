@@ -58,6 +58,8 @@ void BGDisplayManager_::setup() {
     }
 
     currentFace = (faces[currentFaceIndex]);
+
+    refreshCachedEnabledFaces();
 }
 
 std::map<int, String> BGDisplayManager_::getFaces() { return facesNames; }
@@ -81,44 +83,50 @@ std::vector<int> BGDisplayManager_::parseEnabledFaces(const String& csv) {
     int start = 0;
     int commaIndex;
     while ((commaIndex = csv.indexOf(',', start)) != -1) {
-        int val = csv.substring(start, commaIndex).toInt();
-        if (val >= 0 && val < (int)faces.size()) {
+        String token = csv.substring(start, commaIndex);
+        token.trim();
+        int val = token.toInt();
+        if (token.length() > 0 && (val != 0 || token == "0") && val >= 0 && val < (int)faces.size()) {
             enabled.push_back(val);
         }
         start = commaIndex + 1;
     }
     // last (or only) token
     if (start < (int)csv.length()) {
-        int val = csv.substring(start).toInt();
-        if (val >= 0 && val < (int)faces.size()) {
+        String token = csv.substring(start);
+        token.trim();
+        int val = token.toInt();
+        if (token.length() > 0 && (val != 0 || token == "0") && val >= 0 && val < (int)faces.size()) {
             enabled.push_back(val);
         }
     }
     return enabled;
 }
 
+void BGDisplayManager_::refreshCachedEnabledFaces() {
+    cachedEnabledFaces = parseEnabledFaces(SettingsManager.settings.face_rotation_enabled_faces);
+}
+
 bool BGDisplayManager_::isFaceEnabled(int faceIndex) {
-    auto enabled = parseEnabledFaces(SettingsManager.settings.face_rotation_enabled_faces);
-    for (int idx : enabled) {
+    for (int idx : cachedEnabledFaces) {
         if (idx == faceIndex) return true;
     }
     return false;
 }
 
 int BGDisplayManager_::getNextEnabledFace(int currentIndex) {
-    auto enabled = parseEnabledFaces(SettingsManager.settings.face_rotation_enabled_faces);
-    if (enabled.empty()) {
+    if (cachedEnabledFaces.empty()) {
         // Fallback: if nothing enabled, just go to next face
         return (currentIndex + 1) % faces.size();
     }
     // Find current face in enabled list, then pick next
-    for (size_t i = 0; i < enabled.size(); i++) {
-        if (enabled[i] == currentIndex) {
-            return enabled[(i + 1) % enabled.size()];
+    for (size_t i = 0; i < cachedEnabledFaces.size(); i++) {
+        if (cachedEnabledFaces[i] == currentIndex) {
+            return cachedEnabledFaces[(i + 1) % cachedEnabledFaces.size()];
         }
     }
     // Current face not in enabled list, jump to first enabled face
-    return enabled[0];
+    return cachedEnabledFaces[0];
 }
 
 void BGDisplayManager_::tick() {
