@@ -726,6 +726,18 @@ void ServerManager_::setupWebServer(IPAddress ip) {
                 "<input type=\"password\" name=\"api_secret\"></div></div>"
                 "</div></div>";
 
+        // Optional device PIN — enables web authentication to protect settings
+        html += "<div class=\"section\">"
+                "<p class=\"sl\">Device PIN <span style=\"text-transform:none;color:#555\">(optional)</span></p>"
+                "<p style=\"font-size:13px;color:#888;margin-bottom:12px;line-height:1.4\">"
+                "Set a 4&ndash;6 digit PIN to protect the settings page from unauthorized access.</p>"
+                "<div class=\"f\">"
+                "<label class=\"fl\" for=\"device_pin\">PIN</label>"
+                "<input type=\"password\" id=\"device_pin\" name=\"device_pin\" "
+                "inputmode=\"numeric\" pattern=\"[0-9]{4,6}\" maxlength=\"6\" "
+                "autocomplete=\"off\" placeholder=\"4-6 digits\">"
+                "</div></div>";
+
         html += "<button type=\"submit\">Connect &amp; start</button>"
                 "</form></body></html>";
 
@@ -807,6 +819,15 @@ void ServerManager_::setupWebServer(IPAddress ip) {
         // Zip code (triggers timezone + weather location geocoding after WiFi connects)
         if (request->hasParam("zip", true)) {
             SettingsManager.settings.setup_zip = request->getParam("zip", true)->value();
+        }
+
+        // Device PIN — enable web authentication if a valid PIN was provided
+        if (request->hasParam("device_pin", true)) {
+            String pin = request->getParam("device_pin", true)->value();
+            if (pin.length() >= 4 && pin.length() <= 6) {
+                SettingsManager.settings.web_auth_enable = true;
+                SettingsManager.settings.web_auth_password = pin;
+            }
         }
 
         if (!SettingsManager.saveSettingsToFile()) {
