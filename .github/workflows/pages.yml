@@ -1,0 +1,112 @@
+name: Build firmware and deploy web flasher
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - "v-*"
+
+jobs:
+  build:
+    name: Build firmware
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      - name: Build release firmware
+        run: pio run --environment ulanzi
+      - name: Build release filesystem image
+        run: pio run --target buildfs --environment ulanzi
+      - name: Collect release artifacts
+        run: |
+          mkdir artifacts
+          cp .pio/build/ulanzi/bootloader.bin artifacts/
+          cp .pio/build/ulanzi/partitions.bin artifacts/
+          cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin artifacts/
+          cp .pio/build/ulanzi/firmware.bin artifacts/
+          cp .pio/build/ulanzi/littlefs.bin artifacts/
+
+      - name: Enable debug flags in platformio.ini
+        run: |
+          sed -i 's/#    -DDEBUG_BG_SOURCE/    -DDEBUG_BG_SOURCE/' platformio.ini
+          sed -i 's/#    -DDEBUG_DISPLAY/    -DDEBUG_DISPLAY/' platformio.ini
+          sed -i 's/#    -DDEBUG_BRIGHTNESS/    -DDEBUG_BRIGHTNESS/' platformio.ini
+          sed -i 's/#    -DDEBUG_ALARMS/    -DDEBUG_ALARMS/' platformio.ini
+          sed -i 's/#    -DDEBUG_MEMORY/    -DDEBUG_MEMORY/' platformio.ini
+      - name: Build debug firmware
+        run: pio run --environment ulanzi_debug
+      - name: Build debug filesystem image
+        run: pio run --target buildfs --environment ulanzi_debug
+      - name: Collect debug artifacts
+        run: |
+          mkdir artifacts-debug
+          cp .pio/build/ulanzi_debug/bootloader.bin artifacts-debug/
+          cp .pio/build/ulanzi_debug/partitions.bin artifacts-debug/
+          cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin artifacts-debug/
+          cp .pio/build/ulanzi_debug/firmware.bin artifacts-debug/
+          cp .pio/build/ulanzi_debug/littlefs.bin artifacts-debug/
+
+      - name: Package build artifacts
+        run: |
+          mkdir -p combined/release combined/debug
+          cp artifacts/*.bin combined/release/
+          cp artifacts-debug/*.bin combined/debug/
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: combined/
+          retention-days: 1
+
+  deploy:
+    name: Deploy web flasher to GitHub Pages
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: firmware
+          path: firmware
+      - name: Assemble site
+        run: |
+          mkdir -p www/artifacts www/debug/artifacts
+          cp firmware/release/*.bin www/artifacts/
+          cp firmware/debug/*.bin www/debug/artifacts/
+          cp www/debug/manifest-debug.json www/debug/manifest.json
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "www"
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
