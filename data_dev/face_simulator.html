@@ -211,12 +211,13 @@ const faces=[
     drawTrendLine(31,trend(),color);
     drawTimerBlocks(18,14,C.green);
 }},
-{name:'Big text',desc:'Large BG number across full display',draw(){
+{name:'Big text',desc:'Large BG number with trend indicator',draw(){
     const v=bg(),color=getBgColor(v);
     const s=String(v);
     const totalW=s.length*6-1;
     const startX=Math.floor((32-totalW)/2);
     drawText(s,startX,7,color,true);
+    drawTrendLine(31,trend(),color);
 }},
 {name:'Value and diff',desc:'BG reading with change since last reading',draw(){
     const v=bg(),color=getBgColor(v);
