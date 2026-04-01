@@ -18,6 +18,7 @@ public:
     void showNoData() const override;
 
     static void fetchWeather();
+    static void resolveZipLocation();
     static WeatherData cachedWeather;
 
 private:

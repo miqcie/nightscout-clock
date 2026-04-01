@@ -19,8 +19,9 @@ void BGDisplayFaceRoomTemp::showReadings(
         temp = temp * 9.0f / 5.0f + 32.0f;
     }
 
-    // Color based on comfort: blue<65F, green 65-80F, yellow 80-85F, red>85F
-    int tempF = IS_CELSIUS ? (int)(temp * 9.0f / 5.0f + 32.0f) : (int)temp;
+    // Color based on comfort: cyan<65F, green 65-80F, yellow 80-85F, red>85F
+    // Always compute Fahrenheit from raw sensor value (Celsius) for consistent thresholds
+    int tempF = (int)(CURRENT_TEMP * 9.0f / 5.0f + 32.0f);
     uint16_t tempColor;
     if (tempF < 65) tempColor = COLOR_CYAN;
     else if (tempF <= 80) tempColor = COLOR_GREEN;
@@ -28,16 +29,12 @@ void BGDisplayFaceRoomTemp::showReadings(
     else tempColor = COLOR_RED;
 
     char tempStr[6];
-    if (IS_CELSIUS) {
-        snprintf(tempStr, sizeof(tempStr), "%d", (int)temp);
-    } else {
-        snprintf(tempStr, sizeof(tempStr), "%d", (int)temp);
-    }
+    snprintf(tempStr, sizeof(tempStr), "%d", (int)temp);
 
     DisplayManager.setTextColor(tempColor);
     DisplayManager.printText(0, 6, tempStr, TEXT_ALIGNMENT::LEFT, 2);
 
-    // Show degree symbol and humidity as a single pixel row at bottom
+    // Draw humidity bar as a single pixel row at bottom
     int hum = (int)CURRENT_HUM;
     // Draw humidity bar: width proportional to humidity (0-100% mapped to 0-16px)
     int barWidth = hum * 16 / 100;

@@ -81,8 +81,7 @@ JsonDocument* SettingsManager_::readConfigJsonFile() {
         }
         return doc;
     } else {
-        DEBUG_PRINTLN("Cannot read configuration file");
-        factoryReset();
+        DEBUG_PRINTLN("Cannot read configuration file — config.json missing");
         return NULL;
     }
 }
@@ -216,6 +215,11 @@ bool SettingsManager_::loadSettingsFromFile() {
         settings.face_rotate_interval_sec = 15;  // default 15 seconds
     }
 
+    // Location (from zip code geocoding)
+    settings.setup_zip = (*doc)["setup_zip"].as<String>();
+    settings.weather_lat = (*doc)["weather_lat"].as<float>();
+    settings.weather_lon = (*doc)["weather_lon"].as<float>();
+
     delete doc;
 
     this->settings = settings;
@@ -342,6 +346,11 @@ bool SettingsManager_::saveSettingsToFile() {
     (*doc)["face_auto_rotate"] = settings.face_auto_rotate;
     (*doc)["face_rotate_interval_sec"] = settings.face_rotate_interval_sec;
 
+    // Location (from zip code geocoding)
+    (*doc)["setup_zip"] = settings.setup_zip;
+    (*doc)["weather_lat"] = settings.weather_lat;
+    (*doc)["weather_lon"] = settings.weather_lon;
+
     if (trySaveJsonAsSettings(*doc) == false)
         return false;
 
@@ -350,7 +359,7 @@ bool SettingsManager_::saveSettingsToFile() {
     return true;
 }
 
-bool SettingsManager_::trySaveJsonAsSettings(JsonDocument doc) {
+bool SettingsManager_::trySaveJsonAsSettings(const JsonDocument& doc) {
     DEBUG_PRINTLN(doc.as<String>());
     auto file = LittleFS.open(CONFIG_JSON, FILE_WRITE);
     if (!file) {

@@ -72,7 +72,7 @@ void BGDisplayManager_::setFace(int id) {
         currentFace = (faces[currentFaceIndex]);
         DisplayManager.clearMatrix();
         lastRefreshEpoch = 0;
-        tick();
+        maybeRrefreshScreen(true);
     }
 }
 
@@ -85,7 +85,7 @@ void BGDisplayManager_::tick() {
             lastFaceRotateMs = now;
             int nextFace = (currentFaceIndex + 1) % faces.size();
             setFace(nextFace);
-            return;  // setFace already calls tick->maybeRefreshScreen
+            return;  // setFace calls maybeRrefreshScreen directly
         }
     }
     maybeRrefreshScreen();

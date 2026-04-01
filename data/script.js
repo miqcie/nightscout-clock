@@ -87,14 +87,14 @@
             $('#glucose_source').val(source).trigger('change');
             // Hide validation message
             $('#source_validation_msg').hide();
-            // Sync radio buttons to hidden selects for Dexcom region
-            $('input[name="dexcom_region"]').on('change', function() {
-                $('#dexcom_server').val($(this).val());
-            });
-            // Sync radio buttons to hidden select for NS protocol
-            $('input[name="ns_proto"]').on('change', function() {
-                $('#ns_protocol').val($(this).val());
-            });
+        });
+
+        // Sync radio buttons to hidden selects (bound once, not per click)
+        $('input[name="dexcom_region"]').on('change', function() {
+            $('#dexcom_server').val($(this).val());
+        });
+        $('input[name="ns_proto"]').on('change', function() {
+            $('#ns_protocol').val($(this).val());
         });
 
         // More sources toggle

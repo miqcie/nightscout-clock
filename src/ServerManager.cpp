@@ -20,6 +20,23 @@ ServerManager_& ServerManager_::getInstance() {
     return instance;
 }
 
+static String htmlEscape(const String& s) {
+    String out;
+    out.reserve(s.length() + 8);
+    for (unsigned int i = 0; i < s.length(); i++) {
+        char c = s.charAt(i);
+        switch (c) {
+            case '&':  out += "&amp;";  break;
+            case '<':  out += "&lt;";   break;
+            case '>':  out += "&gt;";   break;
+            case '"':  out += "&quot;"; break;
+            case '\'': out += "&#39;";  break;
+            default:   out += c;        break;
+        }
+    }
+    return out;
+}
+
 static String resolveAlarmMelody(const String& alarmType) {
     if (alarmType == "high") {
         if (SettingsManager.settings.alarm_high_melody.length() > 0) {
@@ -439,9 +456,8 @@ void ServerManager_::setupWebServer(IPAddress ip) {
             return;
         }
         request->send(200, "application/json", "{\"status\": \"ok\"}");
-        delay(1000);
-        LittleFS.end();
-        ESP.restart();
+        pendingRestart = true;
+        pendingRestartMs = millis();
     });
 
     ws->addHandler(new AsyncCallbackJsonWebHandler(
@@ -515,8 +531,9 @@ void ServerManager_::setupWebServer(IPAddress ip) {
     // Redirects fail in iOS CaptiveNetworkSupport WebView.
     // All captive portal detection paths serve the same dynamic WiFi setup page.
     // Scan WiFi networks ONCE at startup, cache results.
-    // WiFi.scanNetworks() is synchronous (~3s) and disrupts the AP radio,
-    // causing captive portal clients to disconnect if scanned per-request.
+    // WiFi.scanNetworks(true) starts an async scan. Even async scans briefly
+    // disrupt the AP radio, causing captive portal clients to disconnect if
+    // scanned per-request — so we scan once and cache.
     WiFi.scanNetworks(true);  // async scan, results retrieved later
     delay(3000);              // wait for scan to complete
     int cachedNetworkCount = WiFi.scanComplete();
@@ -548,7 +565,9 @@ void ServerManager_::setupWebServer(IPAddress ip) {
     auto serveCaptivePortal = [cachedNetworks](AsyncWebServerRequest* request) {
         int n = cachedNetworks.size();
 
-        String html =
+        String html;
+        html.reserve(6144);
+        html +=
             "<!DOCTYPE html><html lang=\"en\"><head>"
             "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
             "<title>Nightscout Clock</title><style>"
@@ -616,17 +635,20 @@ void ServerManager_::setupWebServer(IPAddress ip) {
                 else if (rssi > -70) bars = "&#9608;&#9608;";
                 else bars = "&#9608;";
 
+                String escaped = htmlEscape(net.first);
                 html += "<label class=\"net\"><input type=\"radio\" name=\"ssid\" value=\"";
-                html += net.first;
+                html += escaped;
                 html += "\"><span class=\"sig\">";
                 html += bars;
                 html += "</span><span class=\"name\">";
-                html += net.first;
+                html += escaped;
                 html += "</span></label>";
             }
             html += "</div>";
         } else {
-            html += "<div class=\"f\">"
+            html += "<p style=\"font-size:13px;color:#888;margin-bottom:12px\">"
+                    "Nearby networks could not be detected. Enter your network name manually.</p>"
+                    "<div class=\"f\">"
                     "<label class=\"fl\" for=\"ssid\">Network name</label>"
                     "<input type=\"text\" id=\"ssid\" name=\"ssid\" required>"
                     "</div>";
@@ -638,6 +660,15 @@ void ServerManager_::setupWebServer(IPAddress ip) {
                 "<input type=\"password\" id=\"password\" name=\"password\" autocomplete=\"current-password\">"
                 "<p style=\"font-size:11px;color:#555;margin-top:6px\">"
                 "Tap the key icon above your keyboard for saved passwords</p>"
+                "</div>";
+
+        // Zip code for timezone + weather location
+        html += "<div class=\"f\">"
+                "<label class=\"fl\" for=\"zip\">Zip code</label>"
+                "<input type=\"text\" id=\"zip\" name=\"zip\" placeholder=\"e.g. 23220\" "
+                "inputmode=\"numeric\" maxlength=\"10\">"
+                "<p style=\"font-size:11px;color:#555;margin-top:6px\">"
+                "For local time and weather (optional)</p>"
                 "</div>";
 
         // CGM source section
@@ -710,6 +741,18 @@ void ServerManager_::setupWebServer(IPAddress ip) {
 
     // Combined setup endpoint — WiFi + CGM source in one form POST from captive portal
     ws->on("/api/setup", HTTP_POST, [this](AsyncWebServerRequest* request) {
+        // Validate required field
+        if (!request->hasParam("ssid", true) ||
+            request->getParam("ssid", true)->value().length() == 0) {
+            request->send(400, "text/html",
+                "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
+                "<style>body{background:#1a1a1a;color:#F04848;font-family:sans-serif;padding:24px}"
+                "a{color:#58a6ff}</style></head><body>"
+                "<p>Network name is required.</p>"
+                "<a href=\"/captive.html\">Try again</a></body></html>");
+            return;
+        }
+
         // WiFi
         if (request->hasParam("ssid", true)) {
             SettingsManager.settings.ssid = request->getParam("ssid", true)->value();
@@ -759,9 +802,22 @@ void ServerManager_::setupWebServer(IPAddress ip) {
             SettingsManager.settings.nightscout_api_key = request->getParam("api_secret", true)->value();
         }
 
-        SettingsManager.saveSettingsToFile();
+        // Zip code (triggers timezone + weather location geocoding after WiFi connects)
+        if (request->hasParam("zip", true)) {
+            SettingsManager.settings.setup_zip = request->getParam("zip", true)->value();
+        }
 
-        String ssid = SettingsManager.settings.ssid;
+        if (!SettingsManager.saveSettingsToFile()) {
+            request->send(500, "text/html",
+                "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
+                "<style>body{background:#1a1a1a;color:#F04848;font-family:sans-serif;padding:24px}</style>"
+                "</head><body><h1>Save failed</h1>"
+                "<p>Could not save settings to flash. Please try again.</p>"
+                "<a href=\"/captive.html\" style=\"color:#58a6ff\">Retry setup</a></body></html>");
+            return;
+        }
+
+        String ssid = htmlEscape(SettingsManager.settings.ssid);
         String responseHtml =
             "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" "
             "content=\"width=device-width,initial-scale=1\"><style>body{background:#1a1a1a;"
@@ -773,9 +829,8 @@ void ServerManager_::setupWebServer(IPAddress ip) {
             "</body></html>";
         request->send(200, "text/html", responseHtml);
 
-        delay(1500);
-        LittleFS.end();
-        ESP.restart();
+        pendingRestart = true;
+        pendingRestartMs = millis();
     });
 
     // Legacy WiFi-only endpoint (kept for backwards compatibility)
@@ -795,24 +850,32 @@ void ServerManager_::setupWebServer(IPAddress ip) {
 
         SettingsManager.settings.ssid = ssid;
         SettingsManager.settings.wifi_password = password;
-        SettingsManager.saveSettingsToFile();
 
+        if (!SettingsManager.saveSettingsToFile()) {
+            request->send(500, "text/html",
+                "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
+                "<style>body{background:#1a1a1a;color:#F04848;font-family:sans-serif;padding:24px}</style>"
+                "</head><body><h1>Save failed</h1>"
+                "<p>Could not save settings to flash. Please try again.</p>"
+                "<a href=\"/captive.html\" style=\"color:#58a6ff\">Retry setup</a></body></html>");
+            return;
+        }
+
+        String escapedSsid = htmlEscape(ssid);
         String responseHtml =
             "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" "
             "content=\"width=device-width,initial-scale=1\"><style>body{background:#1a1a1a;"
             "color:#e0e0e0;font-family:sans-serif;padding:24px}h1{font-size:20px;margin-bottom:8px}"
             ".ok{color:#07E0A0}a{color:#58a6ff}</style></head><body>"
             "<h1>WiFi saved</h1>"
-            "<p class=\"ok\">The clock will now restart and connect to <strong>" + ssid + "</strong>.</p>"
+            "<p class=\"ok\">The clock will now restart and connect to <strong>" + escapedSsid + "</strong>.</p>"
             "<p style=\"margin-top:16px;color:#888\">After the clock restarts, open your browser and go to "
             "the IP address shown on the clock display to finish setup.</p>"
             "</body></html>";
         request->send(200, "text/html", responseHtml);
 
-        // Restart after a brief delay to allow the response to be sent
-        delay(1500);
-        LittleFS.end();
-        ESP.restart();
+        pendingRestart = true;
+        pendingRestartMs = millis();
     });
 
     addStaticFileHandler();
@@ -920,6 +983,12 @@ void ServerManager_::setup() {
 }
 
 void ServerManager_::tick() {
+    // Deferred restart: allow async response to flush before rebooting
+    if (pendingRestart && (millis() - pendingRestartMs > 2000)) {
+        LittleFS.end();
+        ESP.restart();
+    }
+
     if (apMode) {
         dnsServer.processNextRequest();
     } else {

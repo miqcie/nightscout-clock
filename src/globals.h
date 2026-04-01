@@ -32,6 +32,7 @@
 #define WIFI_CONNECT_TIMEOUT 15000
 #define AP_MODE_PASSWORD ""
 #define HOSTNAME_PREFIX "nsclock"
+// Use 10.0.0.1 instead of ESP32 default 192.168.4.1 to avoid conflicts with common home router subnets
 #define AP_IP "10.0.0.1"
 #define AP_NETMASK "255.255.255.0"
 #define AP_GATEWAY "10.0.0.1"
