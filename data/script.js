@@ -102,7 +102,6 @@
             $('#more_sources_wrapper').toggleClass('d-none');
             $(this).text($('#more_sources_wrapper').hasClass('d-none') ? 'More options...' : 'Fewer options');
         });
-
     }
 
     function addAdditionalWifiTypeHandler() {
@@ -512,6 +511,7 @@
     function glucoseDataSourceSwitch() {
         const glucoseSource = $('#glucose_source');
         const value = glucoseSource.val();
+<<<<<<< HEAD
         // Old settings cards are replaced by inline source-fields in the source picker.
         // Keep them permanently hidden.
         $('#nightscout_settings_card').addClass("d-none");
@@ -829,12 +829,16 @@
 
     function createJson() {
         var json = configJson;
-        //WiFi
-        json['ssid'] = $('#ssid').val();
-        if ($('#open_wifi_network').is(':checked')) {
-            json['password'] = "";
-        } else {
-            json['password'] = $('#wifi_password').val();
+        //WiFi — only include credentials if SSID is provided,
+        //so saving other settings doesn't blank out stored WiFi config
+        var ssidVal = ($('#ssid').val() || "").trim();
+        if (ssidVal.length > 0) {
+            json['ssid'] = ssidVal;
+            if ($('#open_wifi_network').is(':checked')) {
+                json['password'] = "";
+            } else {
+                json['password'] = $('#wifi_password').val();
+            }
         }
 
         //Glucose source
