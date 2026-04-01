@@ -14,9 +14,7 @@ WeatherData BGDisplayFaceWeather::cachedWeather = {0, 0, -1, 0, false};
 static const unsigned long WEATHER_CACHE_MS = 30UL * 60UL * 1000UL;         // refresh interval
 static const unsigned long WEATHER_MAX_STALE_MS = 2UL * 60UL * 60UL * 1000UL;  // 2hr max age
 
-// Fallback location (Richmond, VA) — used only when no zip code was entered
-static const float FALLBACK_LAT = 37.5407f;
-static const float FALLBACK_LON = -77.4360f;
+// No fallback location — if no zip/coordinates configured, weather displays "---"
 
 // IANA timezone → POSIX TZ string for common US timezones
 static String ianaToPosix(const String& iana) {
@@ -114,10 +112,13 @@ void BGDisplayFaceWeather::fetchWeather() {
         return;
     }
 
-    float lat = SettingsManager.settings.weather_lat != 0
-        ? SettingsManager.settings.weather_lat : FALLBACK_LAT;
-    float lon = SettingsManager.settings.weather_lon != 0
-        ? SettingsManager.settings.weather_lon : FALLBACK_LON;
+    float lat = SettingsManager.settings.weather_lat;
+    float lon = SettingsManager.settings.weather_lon;
+
+    // No location configured — skip fetch, display will show "---"
+    if (lat == 0 && lon == 0) {
+        return;
+    }
 
     String tempUnit = IS_CELSIUS ? "celsius" : "fahrenheit";
     HTTPClient http;
