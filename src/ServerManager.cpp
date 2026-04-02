@@ -850,10 +850,12 @@ void ServerManager_::setupWebServer(IPAddress ip) {
             "<p class=\"ok\">Connecting to <strong>" + ssid + "</strong>...</p>"
             "<p style=\"margin-top:12px;color:#888\">The clock will show your glucose data within 2 minutes.</p>"
             "</body></html>";
-        request->send(200, "text/html", responseHtml);
-
-        pendingRestart = true;
-        pendingRestartMs = millis();
+        auto* response = request->beginResponse(200, "text/html", responseHtml);
+        request->onDisconnect([]() {
+            LittleFS.end();
+            ESP.restart();
+        });
+        request->send(response);
     });
 
     // Legacy WiFi-only endpoint (kept for backwards compatibility)
@@ -895,10 +897,12 @@ void ServerManager_::setupWebServer(IPAddress ip) {
             "<p style=\"margin-top:16px;color:#888\">After the clock restarts, open your browser and go to "
             "the IP address shown on the clock display to finish setup.</p>"
             "</body></html>";
-        request->send(200, "text/html", responseHtml);
-
-        pendingRestart = true;
-        pendingRestartMs = millis();
+        auto* response = request->beginResponse(200, "text/html", responseHtml);
+        request->onDisconnect([]() {
+            LittleFS.end();
+            ESP.restart();
+        });
+        request->send(response);
     });
 
     addStaticFileHandler();
