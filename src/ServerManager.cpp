@@ -755,7 +755,7 @@ void ServerManager_::setupWebServer(IPAddress ip) {
 
     // Combined setup endpoint — WiFi + CGM source in one form POST from captive portal
     ws->on("/api/setup", HTTP_POST, [this](AsyncWebServerRequest* request) {
-        // Validate required field
+        // Validate required fields
         if (!request->hasParam("ssid", true) ||
             request->getParam("ssid", true)->value().length() == 0) {
             request->send(400, "text/html",
@@ -763,6 +763,16 @@ void ServerManager_::setupWebServer(IPAddress ip) {
                 "<style>body{background:#1a1a1a;color:#F04848;font-family:sans-serif;padding:24px}"
                 "a{color:#58a6ff}</style></head><body>"
                 "<p>Network name is required.</p>"
+                "<a href=\"/captive.html\">Try again</a></body></html>");
+            return;
+        }
+        if (!request->hasParam("data_source", true) ||
+            request->getParam("data_source", true)->value().isEmpty()) {
+            request->send(400, "text/html",
+                "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
+                "<style>body{background:#1a1a1a;color:#F04848;font-family:sans-serif;padding:24px}"
+                "a{color:#58a6ff}</style></head><body>"
+                "<p>Please select a glucose data source.</p>"
                 "<a href=\"/captive.html\">Try again</a></body></html>");
             return;
         }
