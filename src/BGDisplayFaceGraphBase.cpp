@@ -70,13 +70,13 @@ void BGDisplayFaceGraphBase::showGraph(
     GlucoseInterval normalInterval = GlucoseInterval();
 
     for (const GlucoseInterval& interval : intervals.intervals) {
-        if (interval.intarval_type == BG_LEVEL::NORMAL) {
+        if (interval.interval_type == BG_LEVEL::NORMAL) {
             normalInterval = interval;
             break;
         }
     }
 
-    if (normalInterval.intarval_type == BG_LEVEL::INVALID) {
+    if (normalInterval.interval_type == BG_LEVEL::INVALID) {
         DisplayManager.showFatalError("No normal interval present, please set up");
     }
 
