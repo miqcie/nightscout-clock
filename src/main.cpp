@@ -29,9 +29,15 @@ void setup() {
         return;
     }
     if (!SettingsManager.loadSettingsFromFile()) {
-        DisplayManager.showFatalError("Error loading software, please reinstall");
-        setupFailed = true;
-        return;
+        DEBUG_PRINTLN("Config load failed, attempting NVS recovery...");
+        if (!SettingsManager.restoreConfigFromNVS()) {
+            DEBUG_PRINTLN("NVS recovery failed, recreating default config...");
+            if (!SettingsManager.recreateDefaultConfig()) {
+                DisplayManager.showFatalError("Error loading software, please reinstall");
+                setupFailed = true;
+                return;
+            }
+        }
     }
 
     DisplayManager.applySettings();
