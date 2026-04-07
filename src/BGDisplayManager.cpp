@@ -20,7 +20,6 @@ BGDisplayManager_& bgDisplayManager = bgDisplayManager.getInstance();
 
 void BGDisplayManager_::setup() {
     glucoseIntervals = GlucoseIntervals();
-    /// TODO: Add urgent values to settings
 
     glucoseIntervals.addInterval(1, SettingsManager.settings.bg_low_urgent_limit, BG_LEVEL::URGENT_LOW);
     glucoseIntervals.addInterval(
