@@ -33,7 +33,7 @@ private:
     BGSourceManager_(const BGSourceManager_&) = delete;
     BGSourceManager_& operator=(const BGSourceManager_&) = delete;
     BGSource* bgSource = nullptr;
-    BG_SOURCE currentSourceType;
+    BG_SOURCE currentSourceType = BG_SOURCE::NO_SOURCE;
     unsigned long long lastPollEpoch = 0;
 };
 

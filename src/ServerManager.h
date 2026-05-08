@@ -9,8 +9,8 @@
 
 class ServerManager_ {
 private:
-    bool apMode;
-    AsyncWebServer* ws;
+    bool apMode = false;
+    AsyncWebServer* ws = nullptr;
     AsyncStaticWebHandler* staticFilesHandler = nullptr;
     ServerManager_() = default;
     unsigned long lastTimeSync = 0;
@@ -36,8 +36,8 @@ public:
     void setup();
     void tick();
     void stop();
-    bool isConnected;
-    bool isInAPMode;
+    bool isConnected = false;
+    bool isInAPMode = false;
     IPAddress myIP;
     DNSServer dnsServer;
     unsigned long getUtcEpoch();

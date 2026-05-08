@@ -6,7 +6,7 @@
 #include "globals.h"
 
 int getAverageValueForPeriod(
-    uint16_t fromSecondsAgo, uint16_t toSecondsAgo, std::list<GlucoseReading> readings) {
+    uint16_t fromSecondsAgo, uint16_t toSecondsAgo, const std::list<GlucoseReading>& readings) {
     unsigned long long fromEpoch = time(NULL) - fromSecondsAgo;
     unsigned long long toEpoch = time(NULL) - toSecondsAgo;
     // note, toEpoch is older than fromEpoch

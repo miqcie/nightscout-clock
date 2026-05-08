@@ -10,6 +10,8 @@
 
 #include <unity.h>
 
+#include <initializer_list>
+
 #include "bg_units.h"
 
 void setUp(void) {}

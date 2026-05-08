@@ -185,7 +185,7 @@ void BGDisplayManager_::maybeRrefreshScreen(bool force) {
     }
 }
 
-void BGDisplayManager_::showData(std::list<GlucoseReading> glucoseReadings) {
+void BGDisplayManager_::showData(const std::list<GlucoseReading>& glucoseReadings) {
     if (glucoseReadings.size() == 0) {
         currentFace->showNoData();
         return;
@@ -226,7 +226,7 @@ void BGDisplayManager_::drawTimerBlocks(
 
     // minimal block size is 1 pixel, size between blocks is 1 pixel, so we get width, subtract spaces
     // between lines and divide by the maximum number of lines
-    int blockSize = blockSize = (width - 4) / MAX_BLOXCS;
+    int blockSize = (width - 4) / MAX_BLOXCS;
     if (blockSize < 1) {
 #ifdef DEBUG_DISPLAY
         DEBUG_PRINTLN("Block size is less than 1, not drawing timer blocks");

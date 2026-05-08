@@ -19,8 +19,8 @@ class BGAlarmManager_ {
 private:
     BGAlarmManager_() = default;
     std::vector<AlarmData> enabledAlarms;
-    AlarmData* activeAlarm;
-    int alarmIntervalSeconds;
+    AlarmData* activeAlarm = nullptr;
+    int alarmIntervalSeconds = 0;
 
 public:
     static BGAlarmManager_& getInstance();
