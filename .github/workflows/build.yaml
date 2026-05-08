@@ -10,6 +10,21 @@ on:
     tags-ignore:
       - '**'
 jobs:
+  format-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install -y clang-format
+      - name: Verify src/ matches .clang-format
+        run: |
+          violations=$(find src -type f \( -name '*.cpp' -o -name '*.h' \) \
+            -exec clang-format --dry-run --Werror {} + 2>&1 || true)
+          if [ -n "$violations" ]; then
+            echo "$violations"
+            exit 1
+          fi
+
   static-analysis:
     runs-on: ubuntu-latest
     steps:

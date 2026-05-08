@@ -116,7 +116,8 @@ void BGDisplayManager_::refreshCachedEnabledFaces() {
 
 bool BGDisplayManager_::isFaceEnabled(int faceIndex) {
     for (int idx : cachedEnabledFaces) {
-        if (idx == faceIndex) return true;
+        if (idx == faceIndex)
+            return true;
     }
     return false;
 }
@@ -140,7 +141,8 @@ void BGDisplayManager_::tick() {
     // Auto-rotate faces on a timer
     if (SettingsManager.settings.face_auto_rotate) {
         unsigned long now = millis();
-        unsigned long intervalMs = (unsigned long)SettingsManager.settings.face_rotate_interval_sec * 1000UL;
+        unsigned long intervalMs =
+            (unsigned long)SettingsManager.settings.face_rotate_interval_sec * 1000UL;
         if (now - lastFaceRotateMs >= intervalMs) {
             lastFaceRotateMs = now;
             int nextFace = getNextEnabledFace(currentFaceIndex);
@@ -151,9 +153,7 @@ void BGDisplayManager_::tick() {
     maybeRrefreshScreen();
 }
 
-void BGDisplayManager_::resetAutoRotateTimer() {
-    lastFaceRotateMs = millis();
-}
+void BGDisplayManager_::resetAutoRotateTimer() { lastFaceRotateMs = millis(); }
 
 void BGDisplayManager_::maybeRrefreshScreen(bool force) {
     auto currentEpoch = ServerManager.getUtcEpoch();

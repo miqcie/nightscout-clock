@@ -2,6 +2,7 @@
 #include <esp32-hal.h>
 
 #include "BGAlarmManager.h"
+#include "BGDisplayFaceWeather.h"
 #include "BGDisplayManager.h"
 #include "BGSourceManager.h"
 #include "DisplayManager.h"
@@ -9,7 +10,6 @@
 #include "ServerManager.h"
 #include "SettingsManager.h"
 #include "globals.h"
-#include "BGDisplayFaceWeather.h"
 #include "improv_consume.h"
 
 float apModeHintPosition = MATRIX_WIDTH;  // Start the scrolling right after the screen
@@ -57,7 +57,8 @@ void setup() {
 
     DEBUG_PRINTLN("Setup done");
     if (ServerManager.isConnected) {
-        String welcomeMessage = "Nightscout clock | To configure go to http://" + ServerManager.myIP.toString() + "/";
+        String welcomeMessage =
+            "Nightscout clock | To configure go to http://" + ServerManager.myIP.toString() + "/";
         DisplayManager.scrollColorfulText(welcomeMessage);
 
         DisplayManager.clearMatrix();

@@ -216,7 +216,8 @@ bool SettingsManager_::loadSettingsFromFile() {
     if (settings.face_rotate_interval_sec < 5 || settings.face_rotate_interval_sec > 120) {
         settings.face_rotate_interval_sec = 15;  // default 15 seconds
     }
-    if ((*doc)["face_rotation_enabled_faces"].is<const char*>() && strlen((*doc)["face_rotation_enabled_faces"].as<const char*>()) > 0) {
+    if ((*doc)["face_rotation_enabled_faces"].is<const char*>() &&
+        strlen((*doc)["face_rotation_enabled_faces"].as<const char*>()) > 0) {
         settings.face_rotation_enabled_faces = (*doc)["face_rotation_enabled_faces"].as<String>();
     } else {
         settings.face_rotation_enabled_faces = "0,1,2,3,4,5,6,7";  // all faces enabled by default
@@ -240,8 +241,9 @@ namespace {
 // Clamp val into [lo, hi]. If clamped, reset to defaultVal and log.
 int clampOrDefault(int val, int lo, int hi, int defaultVal, const char* name) {
     if (val < lo || val > hi) {
-        DEBUG_PRINTF("Setting %s out of range (%d not in [%d,%d]); reset to default %d\n",
-            name, val, lo, hi, defaultVal);
+        DEBUG_PRINTF(
+            "Setting %s out of range (%d not in [%d,%d]); reset to default %d\n", name, val, lo, hi,
+            defaultVal);
         return defaultVal;
     }
     return val;
@@ -257,21 +259,24 @@ void SettingsManager_::validateLoadedSettings(Settings& s) {
     // a corrupt/garbage value, not a clinical edge case.
     const int BG_MIN = 30;
     const int BG_MAX = 450;
-    s.bg_low_urgent_limit  = clampOrDefault(s.bg_low_urgent_limit,  BG_MIN, BG_MAX, 55,  "bg_low_urgent_limit");
-    s.bg_low_warn_limit    = clampOrDefault(s.bg_low_warn_limit,    BG_MIN, BG_MAX, 70,  "bg_low_warn_limit");
-    s.bg_high_warn_limit   = clampOrDefault(s.bg_high_warn_limit,   BG_MIN, BG_MAX, 180, "bg_high_warn_limit");
-    s.bg_high_urgent_limit = clampOrDefault(s.bg_high_urgent_limit, BG_MIN, BG_MAX, 250, "bg_high_urgent_limit");
+    s.bg_low_urgent_limit =
+        clampOrDefault(s.bg_low_urgent_limit, BG_MIN, BG_MAX, 55, "bg_low_urgent_limit");
+    s.bg_low_warn_limit = clampOrDefault(s.bg_low_warn_limit, BG_MIN, BG_MAX, 70, "bg_low_warn_limit");
+    s.bg_high_warn_limit =
+        clampOrDefault(s.bg_high_warn_limit, BG_MIN, BG_MAX, 180, "bg_high_warn_limit");
+    s.bg_high_urgent_limit =
+        clampOrDefault(s.bg_high_urgent_limit, BG_MIN, BG_MAX, 250, "bg_high_urgent_limit");
 
     // Enforce strict ordering: low_urgent < low_warn < high_warn < high_urgent.
     // If violated, reset all four to defaults rather than guess which one is wrong.
-    if (!(s.bg_low_urgent_limit < s.bg_low_warn_limit &&
-          s.bg_low_warn_limit  < s.bg_high_warn_limit &&
+    if (!(s.bg_low_urgent_limit < s.bg_low_warn_limit && s.bg_low_warn_limit < s.bg_high_warn_limit &&
           s.bg_high_warn_limit < s.bg_high_urgent_limit)) {
-        DEBUG_PRINTF("BG thresholds not strictly ordered (%d/%d/%d/%d); resetting all to defaults\n",
+        DEBUG_PRINTF(
+            "BG thresholds not strictly ordered (%d/%d/%d/%d); resetting all to defaults\n",
             s.bg_low_urgent_limit, s.bg_low_warn_limit, s.bg_high_warn_limit, s.bg_high_urgent_limit);
-        s.bg_low_urgent_limit  = 55;
-        s.bg_low_warn_limit    = 70;
-        s.bg_high_warn_limit   = 180;
+        s.bg_low_urgent_limit = 55;
+        s.bg_low_warn_limit = 70;
+        s.bg_high_warn_limit = 180;
         s.bg_high_urgent_limit = 250;
     }
 
@@ -287,9 +292,10 @@ void SettingsManager_::validateLoadedSettings(Settings& s) {
         clampOrDefault(s.alarm_high_snooze_minutes, 1, 240, 60, "alarm_high_snooze_minutes");
 
     // Alarm trigger values share the same physiological range as the threshold limits.
-    s.alarm_urgent_low_mgdl = clampOrDefault(s.alarm_urgent_low_mgdl, BG_MIN, BG_MAX, 55,  "alarm_urgent_low_mgdl");
-    s.alarm_low_mgdl        = clampOrDefault(s.alarm_low_mgdl,        BG_MIN, BG_MAX, 70,  "alarm_low_mgdl");
-    s.alarm_high_mgdl       = clampOrDefault(s.alarm_high_mgdl,       BG_MIN, BG_MAX, 280, "alarm_high_mgdl");
+    s.alarm_urgent_low_mgdl =
+        clampOrDefault(s.alarm_urgent_low_mgdl, BG_MIN, BG_MAX, 55, "alarm_urgent_low_mgdl");
+    s.alarm_low_mgdl = clampOrDefault(s.alarm_low_mgdl, BG_MIN, BG_MAX, 70, "alarm_low_mgdl");
+    s.alarm_high_mgdl = clampOrDefault(s.alarm_high_mgdl, BG_MIN, BG_MAX, 280, "alarm_high_mgdl");
 
     // default_clockface index — 8 faces (0..7).
     s.default_clockface = clampOrDefault(s.default_clockface, 0, 7, 0, "default_clockface");

@@ -12,9 +12,9 @@
 #include "BGDisplayFaceClock.h"
 #include "BGDisplayFaceGraph.h"
 #include "BGDisplayFaceGraphAndBG.h"
+#include "BGDisplayFaceRoomTemp.h"
 #include "BGDisplayFaceSimple.h"
 #include "BGDisplayFaceValueAndDiff.h"
-#include "BGDisplayFaceRoomTemp.h"
 #include "BGDisplayFaceWeather.h"
 #include "BGSource.h"
 
