@@ -11,6 +11,7 @@ class SettingsManager_ {
 private:
     SettingsManager_() = default;
     JsonDocument* readConfigJsonFile();
+    void validateLoadedSettings(Settings& s);
 
 public:
     static SettingsManager_& getInstance();

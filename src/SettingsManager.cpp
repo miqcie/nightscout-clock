@@ -227,8 +227,70 @@ bool SettingsManager_::loadSettingsFromFile() {
 
     delete doc;
 
+    validateLoadedSettings(settings);
+
     this->settings = settings;
     return true;
+}
+
+namespace {
+
+// Clamp val into [lo, hi]. If clamped, reset to defaultVal and log.
+int clampOrDefault(int val, int lo, int hi, int defaultVal, const char* name) {
+    if (val < lo || val > hi) {
+        DEBUG_PRINTF("Setting %s out of range (%d not in [%d,%d]); reset to default %d\n",
+            name, val, lo, hi, defaultVal);
+        return defaultVal;
+    }
+    return val;
+}
+
+}  // namespace
+
+// Range-check numeric settings loaded from config.json. Out-of-range values are clamped
+// to defaults and logged via DEBUG_PRINTF so a corrupted config can't put the device into
+// nonsensical state (e.g. inverted BG thresholds, brightness above hardware limits).
+void SettingsManager_::validateLoadedSettings(Settings& s) {
+    // Physiological mg/dL bounds for BG thresholds. Anything outside this range is
+    // a corrupt/garbage value, not a clinical edge case.
+    const int BG_MIN = 30;
+    const int BG_MAX = 450;
+    s.bg_low_urgent_limit  = clampOrDefault(s.bg_low_urgent_limit,  BG_MIN, BG_MAX, 55,  "bg_low_urgent_limit");
+    s.bg_low_warn_limit    = clampOrDefault(s.bg_low_warn_limit,    BG_MIN, BG_MAX, 70,  "bg_low_warn_limit");
+    s.bg_high_warn_limit   = clampOrDefault(s.bg_high_warn_limit,   BG_MIN, BG_MAX, 180, "bg_high_warn_limit");
+    s.bg_high_urgent_limit = clampOrDefault(s.bg_high_urgent_limit, BG_MIN, BG_MAX, 250, "bg_high_urgent_limit");
+
+    // Enforce strict ordering: low_urgent < low_warn < high_warn < high_urgent.
+    // If violated, reset all four to defaults rather than guess which one is wrong.
+    if (!(s.bg_low_urgent_limit < s.bg_low_warn_limit &&
+          s.bg_low_warn_limit  < s.bg_high_warn_limit &&
+          s.bg_high_warn_limit < s.bg_high_urgent_limit)) {
+        DEBUG_PRINTF("BG thresholds not strictly ordered (%d/%d/%d/%d); resetting all to defaults\n",
+            s.bg_low_urgent_limit, s.bg_low_warn_limit, s.bg_high_warn_limit, s.bg_high_urgent_limit);
+        s.bg_low_urgent_limit  = 55;
+        s.bg_low_warn_limit    = 70;
+        s.bg_high_warn_limit   = 180;
+        s.bg_high_urgent_limit = 250;
+    }
+
+    // brightness_level is used as 1..10 by the button handlers (DisplayManager.cpp).
+    s.brightness_level = clampOrDefault(s.brightness_level, 1, 10, 5, "brightness_level");
+
+    // Alarm snooze minutes: keep within a sane window (1 minute to 4 hours).
+    s.alarm_urgent_low_snooze_minutes =
+        clampOrDefault(s.alarm_urgent_low_snooze_minutes, 1, 240, 15, "alarm_urgent_low_snooze_minutes");
+    s.alarm_low_snooze_minutes =
+        clampOrDefault(s.alarm_low_snooze_minutes, 1, 240, 30, "alarm_low_snooze_minutes");
+    s.alarm_high_snooze_minutes =
+        clampOrDefault(s.alarm_high_snooze_minutes, 1, 240, 60, "alarm_high_snooze_minutes");
+
+    // Alarm trigger values share the same physiological range as the threshold limits.
+    s.alarm_urgent_low_mgdl = clampOrDefault(s.alarm_urgent_low_mgdl, BG_MIN, BG_MAX, 55,  "alarm_urgent_low_mgdl");
+    s.alarm_low_mgdl        = clampOrDefault(s.alarm_low_mgdl,        BG_MIN, BG_MAX, 70,  "alarm_low_mgdl");
+    s.alarm_high_mgdl       = clampOrDefault(s.alarm_high_mgdl,       BG_MIN, BG_MAX, 280, "alarm_high_mgdl");
+
+    // default_clockface index — 8 faces (0..7).
+    s.default_clockface = clampOrDefault(s.default_clockface, 0, 7, 0, "default_clockface");
 }
 
 bool SettingsManager_::saveSettingsToFile() {
