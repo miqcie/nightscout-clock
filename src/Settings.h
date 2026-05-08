@@ -22,6 +22,11 @@ public:
     String dexcom_username;
     String dexcom_password;
     DEXCOM_SERVER dexcom_server;
+    // Optional override for Dexcom Share applicationId. Empty = use built-in default
+    // (the Follow app's id). Useful if Dexcom rotates the id, since it can be patched
+    // without reflashing firmware. The Japan override is used only when dexcom_server == JAPAN.
+    String dexcom_application_id;
+    String dexcom_application_id_japan;
     String librelinkup_email;
     String librelinkup_password;
     String librelinkup_region;

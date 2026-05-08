@@ -848,6 +848,8 @@
         json['dexcom_server'] = $('#dexcom_server').val();
         json['dexcom_username'] = $('#dexcom_username').val();
         json['dexcom_password'] = $('#dexcom_password').val();
+        json['dexcom_application_id'] = $('#dexcom_application_id').val() || '';
+        json['dexcom_application_id_japan'] = $('#dexcom_application_id_japan').val() || '';
 
         // Medtrum Easy Follow
         json['medtrum_email'] = $('#medtrum_email').val();
@@ -1224,6 +1226,8 @@
         }
         $('#dexcom_username').val(json['dexcom_username']);
         $('#dexcom_password').val(json['dexcom_password']);
+        $('#dexcom_application_id').val(json['dexcom_application_id'] || '');
+        $('#dexcom_application_id_japan').val(json['dexcom_application_id_japan'] || '');
 
         // Medtrum Easy Follow
         $('#medtrum_email').val(json['medtrum_email']);

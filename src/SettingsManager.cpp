@@ -136,6 +136,8 @@ bool SettingsManager_::loadSettingsFromFile() {
     settings.medtrum_password = (*doc)["medtrum_password"].as<String>();
     settings.dexcom_username = (*doc)["dexcom_username"].as<String>();
     settings.dexcom_password = (*doc)["dexcom_password"].as<String>();
+    settings.dexcom_application_id = (*doc)["dexcom_application_id"].as<String>();
+    settings.dexcom_application_id_japan = (*doc)["dexcom_application_id_japan"].as<String>();
     String dexcomServerStr = (*doc)["dexcom_server"].as<String>();
     if (dexcomServerStr == "us") {
         settings.dexcom_server = DEXCOM_SERVER::US;
@@ -344,6 +346,8 @@ bool SettingsManager_::saveSettingsToFile() {
 
     (*doc)["dexcom_username"] = settings.dexcom_username;
     (*doc)["dexcom_password"] = settings.dexcom_password;
+    (*doc)["dexcom_application_id"] = settings.dexcom_application_id;
+    (*doc)["dexcom_application_id_japan"] = settings.dexcom_application_id_japan;
     switch (settings.dexcom_server) {
         case DEXCOM_SERVER::US:
             (*doc)["dexcom_server"] = "us";
