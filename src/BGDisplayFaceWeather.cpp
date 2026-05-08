@@ -14,10 +14,6 @@ WeatherData BGDisplayFaceWeather::cachedWeather = {0, 0, -1, 0, false};
 static const unsigned long WEATHER_CACHE_MS = 30UL * 60UL * 1000UL;         // refresh interval
 static const unsigned long WEATHER_MAX_STALE_MS = 2UL * 60UL * 60UL * 1000UL;  // 2hr max age
 
-// Fallback location (Richmond, VA) — used only when no zip code was entered
-static const float FALLBACK_LAT = 37.5407f;
-static const float FALLBACK_LON = -77.4360f;
-
 // IANA timezone → POSIX TZ string for common US timezones
 static String ianaToPosix(const String& iana) {
     if (iana.startsWith("America/New_York") || iana.startsWith("America/Detroit") ||
@@ -55,7 +51,7 @@ void BGDisplayFaceWeather::resolveZipLocation() {
     // Backoff: wait 30s between attempts
     if (zipResolveAttempts > 0 && (millis() - lastZipAttemptMs) < 30000UL) return;
     if (zipResolveAttempts >= MAX_ZIP_ATTEMPTS) {
-        DEBUG_PRINTF("Zip geocoding gave up after %d attempts, using fallback location", MAX_ZIP_ATTEMPTS);
+        DEBUG_PRINTF("Zip geocoding gave up after %d attempts; weather face will show no data", MAX_ZIP_ATTEMPTS);
         zipResolved = true;
         return;
     }
@@ -114,10 +110,15 @@ void BGDisplayFaceWeather::fetchWeather() {
         return;
     }
 
-    float lat = SettingsManager.settings.weather_lat != 0
-        ? SettingsManager.settings.weather_lat : FALLBACK_LAT;
-    float lon = SettingsManager.settings.weather_lon != 0
-        ? SettingsManager.settings.weather_lon : FALLBACK_LON;
+    // Without a known location we'd be showing weather for the wrong place. Skip the fetch
+    // and let the face render a "no data" indicator instead.
+    if (SettingsManager.settings.weather_lat == 0 && SettingsManager.settings.weather_lon == 0) {
+        cachedWeather.valid = false;
+        return;
+    }
+
+    float lat = SettingsManager.settings.weather_lat;
+    float lon = SettingsManager.settings.weather_lon;
 
     String tempUnit = IS_CELSIUS ? "celsius" : "fahrenheit";
     HTTPClient http;
