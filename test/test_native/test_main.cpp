@@ -3,8 +3,10 @@
 // HardwareSerial, FastLED, LittleFS, etc. needs to be mocked or refactored into
 // a pure-logic helper before it can be tested here.
 //
-// Add new tests to this file (or split into more files in test/test_native/).
-// Every test function must be registered in setup() with RUN_TEST.
+// This file owns the single main() entry point. Each additional test_*.cpp
+// file exposes a register_<suite>_tests() function that calls RUN_TEST for its
+// own test functions; main() invokes them in order. This avoids multiple
+// definitions of main() when PlatformIO compiles every .cpp in test/test_native/.
 
 #include <unity.h>
 
@@ -12,6 +14,10 @@
 
 void setUp(void) {}
 void tearDown(void) {}
+
+// Forward declarations for suites defined in sibling .cpp files.
+void register_bg_trend_tests(void);
+void register_nightscout_parser_tests(void);
 
 static void test_mgdl_to_mmol_basic(void) {
     // Standard conversion factor is 18.0 mg/dL per mmol/L.
@@ -39,5 +45,7 @@ int main(int, char**) {
     RUN_TEST(test_mgdl_to_mmol_basic);
     RUN_TEST(test_mmol_to_mgdl_basic);
     RUN_TEST(test_round_trip_is_stable);
+    register_bg_trend_tests();
+    register_nightscout_parser_tests();
     return UNITY_END();
 }
