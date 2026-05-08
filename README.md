@@ -1,14 +1,39 @@
-# Nightscout Clock
+# Nightscout Clock — parent-friendly fork
 
 ![Nightscout clock logo](https://github.com/ktomy/nightscout-clock/assets/1446257/1198c06d-b017-409d-aca3-2bca63581ecb)
 
-### Current version: 0.29.0
+This is **[miqcie/nightscout-clock](https://github.com/miqcie/nightscout-clock)**, a fork of [ktomy/nightscout-clock](https://github.com/ktomy/nightscout-clock) tuned for parents of T1D kids who want a glanceable bedside CGM display without becoming firmware engineers. The original project's features are intact; this fork prioritizes setup that a non-technical parent can complete in a few minutes from a phone.
 
-![Build and Release](https://github.com/ktomy/nightscout-clock/actions/workflows/build_release.yml/badge.svg)
+> **Just looking to set one up?** See the [parent-friendly setup guide](docs/setup-guide.md). Web flasher: <https://miqcie.github.io/nightscout-clock/>
 
-_Nightscout Clock (or NSClock) is an open-source product aimed at helping caregivers of people with type 1 diabetes have peace of mind by being able to better monitor their loved ones' blood glucose values._
+## What this fork adds on top of upstream
 
-<img width="500" alt="Photo of the Nightscout Clock" src="https://github.com/user-attachments/assets/f8005f49-6e32-43f1-bd84-0bb4e4691d7f" />
+- **Captive-portal setup wizard** — clock creates an `nsclock` Wi‑Fi network, your phone auto-opens a setup page; enter Wi‑Fi + ZIP + CGM creds and you're done.
+- **ZIP-code geocoding** — one ZIP gives you both the local timezone and weather coordinates without picking from a list.
+- **8 display faces with auto-rotate selection** — Simple, Big Digits, Graph, Graph + value, Delta, Clock + value, Room temperature, Outdoor weather. Pick any subset; the clock cycles through the ones you enable.
+- **Device PIN (parent lock)** — settings page can be locked behind a PIN so curious kids don't poke around.
+- **SHT31 temperature sensor disconnect guard** — graceful handling when the optional temperature/humidity sensor isn't present or comes loose.
+- **Web flasher** — first-time install runs entirely in Chrome via WebSerial; no PlatformIO required for end users.
+- **Honest "no weather" UX** — when ZIP geocoding fails the weather face shows a clear no-data indicator instead of silently displaying weather for the wrong city.
+- **Validated settings** — out-of-range BG thresholds, brightness, or alarm snoozes get clamped to safe defaults on load instead of wedging the device.
+
+Display face docs live in [docs/display-faces.md](docs/display-faces.md).
+
+## Hardware
+
+[Ulanzi TC001](https://www.ulanzi.com/products/ulanzi-pixel-smart-clock-2882?aff=1191) (~$50, available in US and EU). The fork has not been tested on AWTRIX-Light hardware but the underlying firmware should work with minor changes — see upstream notes below.
+
+## Building from source
+
+PlatformIO + VS Code is the supported workflow. Clone the repo and run `pio run -e ulanzi` (release) or `pio run -e ulanzi_debug` (extra logs). Filesystem image: `pio run --target buildfs -e ulanzi`. Host-side unit tests: `pio test -e native`.
+
+## Upstream attribution
+
+This fork builds on [ktomy/nightscout-clock](https://github.com/ktomy/nightscout-clock) by [@ktomy](https://github.com/ktomy). All upstream credit and licensing is preserved; the rest of this README is the upstream project's documentation.
+
+The fork diverges in a few places — most notably, OTA firmware updates and the captive-portal setup flow are deliberately different from upstream. PR #143 to upstream was rejected for OTA partition reasons; this fork keeps a single-app partition and accepts the bricking risk in exchange for headroom.
+
+---
 
 ## Here is what it can do
 
