@@ -28,6 +28,39 @@ jobs:
         run: pip install --upgrade platformio
 
       - name: Build PlatformIO Project
-        run: pio run --environment ulanzi
+        run: pio run --environment ulanzi 2>&1 | tee build.log
       - name: Build Filesystem Image
         run: pio run --target buildfs --environment ulanzi
+
+      # Size budget gate: flash > 80% or RAM > 25% should fail before more
+      # features push us into the wall. Update the thresholds here together
+      # with the budget in docs / issue tracker.
+      - name: Check firmware size budget
+        env:
+          MAX_FLASH_PCT: '80'
+          MAX_RAM_PCT: '25'
+        run: |
+          python3 - <<'PY'
+          import os, re, sys
+          log = open('build.log').read()
+          # PlatformIO size report lines look like:
+          #   RAM:   [==        ]  17.6% (used 57848 bytes from 327680 bytes)
+          #   Flash: [========  ]  73.9% (used 968761 bytes from 1310720 bytes)
+          ram = re.search(r'RAM:\s+\[[^\]]*\]\s+([0-9.]+)%', log)
+          flash = re.search(r'Flash:\s+\[[^\]]*\]\s+([0-9.]+)%', log)
+          if not ram or not flash:
+              print('::warning::Could not parse size report from build.log; skipping budget check')
+              sys.exit(0)
+          ram_pct, flash_pct = float(ram.group(1)), float(flash.group(1))
+          max_ram = float(os.environ['MAX_RAM_PCT'])
+          max_flash = float(os.environ['MAX_FLASH_PCT'])
+          print(f'::notice::firmware size — flash {flash_pct}% (max {max_flash}%), RAM {ram_pct}% (max {max_ram}%)')
+          fail = False
+          if flash_pct > max_flash:
+              print(f'::error::Flash usage {flash_pct}% exceeds budget {max_flash}%')
+              fail = True
+          if ram_pct > max_ram:
+              print(f'::error::RAM usage {ram_pct}% exceeds budget {max_ram}%')
+              fail = True
+          sys.exit(1 if fail else 0)
+          PY
