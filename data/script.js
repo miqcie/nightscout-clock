@@ -1043,6 +1043,21 @@
         valid &= validate($('#bg_urgent_low'), bgValidationPattternSelector());
         valid &= validate($('#bg_urgent_high'), bgValidationPattternSelector());
 
+        // Enforce strict ordering: urgent_low < low < high < urgent_high.
+        // Without this, the device can clamp to defaults on next boot (see SettingsManager).
+        if (valid) {
+            const urgentLow = parseFloat($('#bg_urgent_low').val());
+            const low = parseFloat($('#bg_low').val());
+            const high = parseFloat($('#bg_high').val());
+            const urgentHigh = parseFloat($('#bg_urgent_high').val());
+            const ordered = urgentLow < low && low < high && high < urgentHigh;
+            setElementValidity($('#bg_urgent_low'), urgentLow < low);
+            setElementValidity($('#bg_low'), urgentLow < low && low < high);
+            setElementValidity($('#bg_high'), low < high && high < urgentHigh);
+            setElementValidity($('#bg_urgent_high'), high < urgentHigh);
+            if (!ordered) valid = false;
+        }
+
         if (valid) {
             $('#bg_normal').val(`${$('#bg_low').val()}...${$('#bg_high').val()}`);
         }
