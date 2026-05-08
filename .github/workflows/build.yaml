@@ -10,6 +10,27 @@ on:
     tags-ignore:
       - '**'
 jobs:
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install cppcheck
+        run: sudo apt-get update && sudo apt-get install -y cppcheck
+      # Scope to warnings/perf only — the codebase targets Arduino headers we don't
+      # check against, so style/portability would be noisy. Suppress headers we can't
+      # fix (third-party / Arduino core) via inline config in src/.cppcheck-suppress
+      # if needed in the future.
+      - name: Run cppcheck on src/
+        run: |
+          cppcheck \
+            --enable=warning,performance \
+            --inline-suppr \
+            --suppress=missingInclude \
+            --suppress=unusedFunction \
+            --error-exitcode=1 \
+            --quiet \
+            src/
+
   build:
     runs-on: ubuntu-latest
 
