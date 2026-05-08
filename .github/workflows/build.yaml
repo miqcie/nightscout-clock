@@ -5,10 +5,13 @@ permissions:
 
 on:
   push:
-    branches:    
+    branches:
       - main
     tags-ignore:
       - '**'
+  pull_request:
+    branches:
+      - main
 jobs:
   format-check:
     runs-on: ubuntu-latest
