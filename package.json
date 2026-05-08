@@ -1,0 +1,12 @@
+{
+  "name": "nightscout-clock-tests",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Host-side JS tests for the web UI in data/. Run with: npm test",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0"
+  }
+}
