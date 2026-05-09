@@ -10,8 +10,6 @@
 
 #include <unity.h>
 
-#include <initializer_list>
-
 #include "bg_units.h"
 
 void setUp(void) {}
@@ -36,7 +34,8 @@ static void test_mmol_to_mgdl_basic(void) {
 
 static void test_round_trip_is_stable(void) {
     // Round-tripping a typical clinical value should land within 1 mg/dL.
-    for (int mgdl : {55, 70, 100, 140, 180, 240}) {
+    static const int kClinicalValues[] = {55, 70, 100, 140, 180, 240};
+    for (int mgdl : kClinicalValues) {
         int round_tripped = mmol_to_mgdl(mgdl_to_mmol(mgdl));
         TEST_ASSERT_INT_WITHIN(1, mgdl, round_tripped);
     }
