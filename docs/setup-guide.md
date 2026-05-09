@@ -34,7 +34,7 @@ After the reboot, the clock acts as its own Wi-Fi network for the first setup.
 1. On your **phone**, open Wi-Fi settings.
 2. Connect to the network named **`nsclock`**. There is no password.
 3. The phone may show a warning like *"This network has no Internet"* — that's expected, ignore it.
-4. Most phones will pop up the setup page automatically. If yours doesn't, open a browser and go to **<http://192.168.4.1/>**.
+4. Most phones will pop up the setup page automatically. If yours doesn't, open a browser and go to **<http://10.0.0.123/>**.
 
 ## Step 3 — Run the setup wizard
 

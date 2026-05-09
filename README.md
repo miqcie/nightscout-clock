@@ -61,7 +61,7 @@ Thanks [@CallumMcK](https://github.com/CallumMcK)
 4. Connect the USB-C cable (comes with the clock) to your computer
 5. Go to the [installation page](https://ktomy.github.io/nightscout-clock/)
 6. Follow the instructions
-7. Once the clock installed, take out your phone and join `nsclock` wi-fi network. Then go to `http://192.168.4.1/`
+7. Once the clock installed, take out your phone and join `nsclock` wi-fi network. Then go to `http://10.0.0.123/`
 8. Set up your device, provide the Wi-Fi network details, your Dexcom, Nightscout, LibreLink Up or Medtrum EasyFollow credentials, glucose warning limits and other parameters
 9. You're all set, enjoy!
 
