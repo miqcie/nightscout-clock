@@ -17,9 +17,9 @@
 
 struct GlucoseReading {
 public:
-    int sgv;
-    BG_TREND trend;
-    unsigned long long epoch;
+    int sgv = 0;
+    BG_TREND trend = BG_TREND::NONE;
+    unsigned long long epoch = 0;
 
     int getSecondsAgo() const { return time(NULL) - epoch; }
 

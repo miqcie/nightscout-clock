@@ -133,15 +133,14 @@ bool onCommandCallback(improv::ImprovCommand cmd) {
         }
 
         case improv::Command::GET_DEVICE_INFO: {
-            std::vector<std::string> infos = {
-                // Firmware name
-                "Nightscout clock",
-                // Firmware version
-                VERSION,
-                // Hardware chip/variant
-                "Ulanzi TC001",
-                // Device name
-                std::string(SettingsManager.settings.hostname.c_str())};
+            std::vector<std::string> infos = {// Firmware name
+                                              "Nightscout clock",
+                                              // Firmware version
+                                              VERSION,
+                                              // Hardware chip/variant
+                                              "Ulanzi TC001",
+                                              // Device name
+                                              std::string(SettingsManager.settings.hostname.c_str())};
             std::vector<uint8_t> data =
                 improv::build_rpc_response(improv::GET_DEVICE_INFO, infos, false);
             send_response(data);

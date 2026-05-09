@@ -6,6 +6,18 @@
 
 #include "SettingsManager.h"
 
+// Resolve which Dexcom Share applicationId to send. The hardcoded values are the Follow
+// app's ids; if Dexcom rotates them, the user can drop a replacement into config.json
+// (dexcom_application_id / dexcom_application_id_japan) without reflashing firmware.
+static String resolveDexcomApplicationId(DEXCOM_SERVER server) {
+    if (server == DEXCOM_SERVER::JAPAN) {
+        const String& jp = SettingsManager.settings.dexcom_application_id_japan;
+        return jp.length() > 0 ? jp : String(DEXCOM_APPLICATION_ID_JAPAN);
+    }
+    const String& us = SettingsManager.settings.dexcom_application_id;
+    return us.length() > 0 ? us : String(DEXCOM_APPLICATION_ID);
+}
+
 std::list<GlucoseReading> BGSourceDexcom::updateReadings(std::list<GlucoseReading> existingReadings) {
     auto dexcomServer = SettingsManager.settings.dexcom_server;
     auto dexcomUsername = SettingsManager.settings.dexcom_username;
@@ -242,8 +254,7 @@ String BGSourceDexcom::getAccountId(
     JsonDocument doc;
     doc["accountName"] = dexcomUsername;
     doc["password"] = dexcomPassword;
-    doc["applicationId"] =
-        (dexcomServer == DEXCOM_SERVER::JAPAN) ? DEXCOM_APPLICATION_ID_JAPAN : DEXCOM_APPLICATION_ID;
+    doc["applicationId"] = resolveDexcomApplicationId(dexcomServer);
 
     String body;
     serializeJson(doc, body);
@@ -319,8 +330,7 @@ String BGSourceDexcom::getSessionId(
     JsonDocument doc;
     doc["accountId"] = accountId;
     doc["password"] = dexcomPassword;
-    doc["applicationId"] =
-        (dexcomServer == DEXCOM_SERVER::JAPAN) ? DEXCOM_APPLICATION_ID_JAPAN : DEXCOM_APPLICATION_ID;
+    doc["applicationId"] = resolveDexcomApplicationId(dexcomServer);
 
     String body;
     serializeJson(doc, body);

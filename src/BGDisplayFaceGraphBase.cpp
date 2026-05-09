@@ -6,7 +6,7 @@
 #include "globals.h"
 
 int getAverageValueForPeriod(
-    uint16_t fromSecondsAgo, uint16_t toSecondsAgo, std::list<GlucoseReading> readings) {
+    uint16_t fromSecondsAgo, uint16_t toSecondsAgo, const std::list<GlucoseReading>& readings) {
     unsigned long long fromEpoch = time(NULL) - fromSecondsAgo;
     unsigned long long toEpoch = time(NULL) - toSecondsAgo;
     // note, toEpoch is older than fromEpoch
@@ -70,13 +70,13 @@ void BGDisplayFaceGraphBase::showGraph(
     GlucoseInterval normalInterval = GlucoseInterval();
 
     for (const GlucoseInterval& interval : intervals.intervals) {
-        if (interval.intarval_type == BG_LEVEL::NORMAL) {
+        if (interval.interval_type == BG_LEVEL::NORMAL) {
             normalInterval = interval;
             break;
         }
     }
 
-    if (normalInterval.intarval_type == BG_LEVEL::INVALID) {
+    if (normalInterval.interval_type == BG_LEVEL::INVALID) {
         DisplayManager.showFatalError("No normal interval present, please set up");
     }
 

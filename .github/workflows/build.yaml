@@ -5,11 +5,80 @@ permissions:
 
 on:
   push:
-    branches:    
+    branches:
       - main
     tags-ignore:
       - '**'
+  pull_request:
+    branches:
+      - main
 jobs:
+  format-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install -y clang-format
+      - name: Verify src/ matches .clang-format
+        run: |
+          violations=$(find src -type f \( -name '*.cpp' -o -name '*.h' \) \
+            -exec clang-format --dry-run --Werror {} + 2>&1 || true)
+          if [ -n "$violations" ]; then
+            echo "$violations"
+            exit 1
+          fi
+
+  web-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install JS deps
+        run: npm install --no-audit --no-fund
+      - name: Run web UI tests
+        run: npm test
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+      - name: Run native unit tests
+        run: pio test -e native -vv
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install cppcheck
+        run: sudo apt-get update && sudo apt-get install -y cppcheck
+      # Scope to warnings/perf only — the codebase targets Arduino headers we don't
+      # check against, so style/portability would be noisy. Suppress headers we can't
+      # fix (third-party / Arduino core) via inline config in src/.cppcheck-suppress
+      # if needed in the future.
+      - name: Run cppcheck on src/
+        run: |
+          cppcheck \
+            --enable=warning,performance \
+            --inline-suppr \
+            --suppress=missingInclude \
+            --suppress=unusedFunction \
+            --error-exitcode=1 \
+            --quiet \
+            src/
+
   build:
     runs-on: ubuntu-latest
 
@@ -28,6 +97,39 @@ jobs:
         run: pip install --upgrade platformio
 
       - name: Build PlatformIO Project
-        run: pio run --environment ulanzi
+        run: pio run --environment ulanzi 2>&1 | tee build.log
       - name: Build Filesystem Image
         run: pio run --target buildfs --environment ulanzi
+
+      # Size budget gate: flash > 80% or RAM > 25% should fail before more
+      # features push us into the wall. Update the thresholds here together
+      # with the budget in docs / issue tracker.
+      - name: Check firmware size budget
+        env:
+          MAX_FLASH_PCT: '80'
+          MAX_RAM_PCT: '25'
+        run: |
+          python3 - <<'PY'
+          import os, re, sys
+          log = open('build.log').read()
+          # PlatformIO size report lines look like:
+          #   RAM:   [==        ]  17.6% (used 57848 bytes from 327680 bytes)
+          #   Flash: [========  ]  73.9% (used 968761 bytes from 1310720 bytes)
+          ram = re.search(r'RAM:\s+\[[^\]]*\]\s+([0-9.]+)%', log)
+          flash = re.search(r'Flash:\s+\[[^\]]*\]\s+([0-9.]+)%', log)
+          if not ram or not flash:
+              print('::warning::Could not parse size report from build.log; skipping budget check')
+              sys.exit(0)
+          ram_pct, flash_pct = float(ram.group(1)), float(flash.group(1))
+          max_ram = float(os.environ['MAX_RAM_PCT'])
+          max_flash = float(os.environ['MAX_FLASH_PCT'])
+          print(f'::notice::firmware size — flash {flash_pct}% (max {max_flash}%), RAM {ram_pct}% (max {max_ram}%)')
+          fail = False
+          if flash_pct > max_flash:
+              print(f'::error::Flash usage {flash_pct}% exceeds budget {max_flash}%')
+              fail = True
+          if ram_pct > max_ram:
+              print(f'::error::RAM usage {ram_pct}% exceeds budget {max_ram}%')
+              fail = True
+          sys.exit(1 if fail else 0)
+          PY

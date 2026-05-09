@@ -1,0 +1,29 @@
+[
+  {
+    "_id": "anonymized-001",
+    "sgv": 142,
+    "date": 1714500000000,
+    "dateString": "2024-04-30T18:00:00.000Z",
+    "trend": 4,
+    "direction": "Flat",
+    "device": "test-cgm",
+    "type": "sgv"
+  },
+  {
+    "_id": "anonymized-002",
+    "sgv": 158,
+    "date": 1714500300000,
+    "dateString": "2024-04-30T18:05:00.000Z",
+    "direction": "FortyFiveUp",
+    "device": "test-cgm",
+    "type": "sgv"
+  },
+  {
+    "_id": "anonymized-003",
+    "sgv": 175,
+    "date": 1714500600000,
+    "dateString": "2024-04-30T18:10:00.000Z",
+    "device": "test-cgm",
+    "type": "sgv"
+  }
+]

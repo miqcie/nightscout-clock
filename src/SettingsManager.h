@@ -11,6 +11,7 @@ class SettingsManager_ {
 private:
     SettingsManager_() = default;
     JsonDocument* readConfigJsonFile();
+    void validateLoadedSettings(Settings& s);
 
 public:
     static SettingsManager_& getInstance();
@@ -18,7 +19,7 @@ public:
     bool loadSettingsFromFile();
     bool saveSettingsToFile();
     bool trySaveJsonAsSettings(const JsonDocument& doc);
-    void factoryReset();
+    bool factoryReset();
 
     Settings settings;
 };

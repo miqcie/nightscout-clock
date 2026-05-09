@@ -44,7 +44,13 @@ bool copyFile(const char* srcPath, const char* destPath) {
 
     while (srcFile.available()) {
         char data = srcFile.read();
-        destFile.write(data);
+        if (destFile.write(data) != 1) {
+            DEBUG_PRINTLN("Short write during file copy (filesystem full?)");
+            srcFile.close();
+            destFile.close();
+            LittleFS.remove(destPath);  // truncated dest is worse than no dest
+            return false;
+        }
     }
 
     srcFile.close();
@@ -54,10 +60,14 @@ bool copyFile(const char* srcPath, const char* destPath) {
     return true;
 }
 
-void SettingsManager_::factoryReset() {
-    copyFile(CONFIG_JSON_FACTORY, CONFIG_JSON);
+bool SettingsManager_::factoryReset() {
+    if (!copyFile(CONFIG_JSON_FACTORY, CONFIG_JSON)) {
+        DEBUG_PRINTLN("factoryReset: copyFile failed; not restarting (would loop)");
+        return false;
+    }
     LittleFS.end();
     ESP.restart();
+    return true;  // unreachable
 }
 
 JsonDocument* SettingsManager_::readConfigJsonFile() {
@@ -81,7 +91,15 @@ JsonDocument* SettingsManager_::readConfigJsonFile() {
         }
         return doc;
     } else {
-        DEBUG_PRINTLN("Cannot read configuration file — config.json missing");
+        // config.json is gitignored and not shipped in data/, so a fresh FS (first boot
+        // or post-uploadfs) won't have it. Bootstrap by copying config_initial.json →
+        // config.json and restarting; on the next boot the file exists and load succeeds.
+        // factoryReset() now returns false instead of restarting if the copy fails — that
+        // prevents an infinite bootstrap loop on a full/corrupt FS, but it also means the
+        // caller (loadSettingsFromFile) will surface "Error loading software" on the
+        // display, which is the correct user-facing signal.
+        DEBUG_PRINTLN("Cannot read configuration file — config.json missing, bootstrapping");
+        factoryReset();
         return NULL;
     }
 }
@@ -136,6 +154,8 @@ bool SettingsManager_::loadSettingsFromFile() {
     settings.medtrum_password = (*doc)["medtrum_password"].as<String>();
     settings.dexcom_username = (*doc)["dexcom_username"].as<String>();
     settings.dexcom_password = (*doc)["dexcom_password"].as<String>();
+    settings.dexcom_application_id = (*doc)["dexcom_application_id"].as<String>();
+    settings.dexcom_application_id_japan = (*doc)["dexcom_application_id_japan"].as<String>();
     String dexcomServerStr = (*doc)["dexcom_server"].as<String>();
     if (dexcomServerStr == "us") {
         settings.dexcom_server = DEXCOM_SERVER::US;
@@ -214,7 +234,8 @@ bool SettingsManager_::loadSettingsFromFile() {
     if (settings.face_rotate_interval_sec < 5 || settings.face_rotate_interval_sec > 120) {
         settings.face_rotate_interval_sec = 15;  // default 15 seconds
     }
-    if ((*doc)["face_rotation_enabled_faces"].is<const char*>() && strlen((*doc)["face_rotation_enabled_faces"].as<const char*>()) > 0) {
+    if ((*doc)["face_rotation_enabled_faces"].is<const char*>() &&
+        strlen((*doc)["face_rotation_enabled_faces"].as<const char*>()) > 0) {
         settings.face_rotation_enabled_faces = (*doc)["face_rotation_enabled_faces"].as<String>();
     } else {
         settings.face_rotation_enabled_faces = "0,1,2,3,4,5,6,7";  // all faces enabled by default
@@ -227,8 +248,75 @@ bool SettingsManager_::loadSettingsFromFile() {
 
     delete doc;
 
+    validateLoadedSettings(settings);
+
     this->settings = settings;
     return true;
+}
+
+namespace {
+
+// Clamp val into [lo, hi]. If clamped, reset to defaultVal and log.
+int clampOrDefault(int val, int lo, int hi, int defaultVal, const char* name) {
+    if (val < lo || val > hi) {
+        DEBUG_PRINTF(
+            "Setting %s out of range (%d not in [%d,%d]); reset to default %d\n", name, val, lo, hi,
+            defaultVal);
+        return defaultVal;
+    }
+    return val;
+}
+
+}  // namespace
+
+// Range-check numeric settings loaded from config.json. Out-of-range values are clamped
+// to defaults and logged via DEBUG_PRINTF so a corrupted config can't put the device into
+// nonsensical state (e.g. inverted BG thresholds, brightness above hardware limits).
+void SettingsManager_::validateLoadedSettings(Settings& s) {
+    // Physiological mg/dL bounds for BG thresholds. Anything outside this range is
+    // a corrupt/garbage value, not a clinical edge case.
+    const int BG_MIN = 30;
+    const int BG_MAX = 450;
+    s.bg_low_urgent_limit =
+        clampOrDefault(s.bg_low_urgent_limit, BG_MIN, BG_MAX, 55, "bg_low_urgent_limit");
+    s.bg_low_warn_limit = clampOrDefault(s.bg_low_warn_limit, BG_MIN, BG_MAX, 70, "bg_low_warn_limit");
+    s.bg_high_warn_limit =
+        clampOrDefault(s.bg_high_warn_limit, BG_MIN, BG_MAX, 180, "bg_high_warn_limit");
+    s.bg_high_urgent_limit =
+        clampOrDefault(s.bg_high_urgent_limit, BG_MIN, BG_MAX, 250, "bg_high_urgent_limit");
+
+    // Enforce strict ordering: low_urgent < low_warn < high_warn < high_urgent.
+    // If violated, reset all four to defaults rather than guess which one is wrong.
+    if (!(s.bg_low_urgent_limit < s.bg_low_warn_limit && s.bg_low_warn_limit < s.bg_high_warn_limit &&
+          s.bg_high_warn_limit < s.bg_high_urgent_limit)) {
+        DEBUG_PRINTF(
+            "BG thresholds not strictly ordered (%d/%d/%d/%d); resetting all to defaults\n",
+            s.bg_low_urgent_limit, s.bg_low_warn_limit, s.bg_high_warn_limit, s.bg_high_urgent_limit);
+        s.bg_low_urgent_limit = 55;
+        s.bg_low_warn_limit = 70;
+        s.bg_high_warn_limit = 180;
+        s.bg_high_urgent_limit = 250;
+    }
+
+    // brightness_level is used as 1..10 by the button handlers (DisplayManager.cpp).
+    s.brightness_level = clampOrDefault(s.brightness_level, 1, 10, 5, "brightness_level");
+
+    // Alarm snooze minutes: keep within a sane window (1 minute to 4 hours).
+    s.alarm_urgent_low_snooze_minutes =
+        clampOrDefault(s.alarm_urgent_low_snooze_minutes, 1, 240, 15, "alarm_urgent_low_snooze_minutes");
+    s.alarm_low_snooze_minutes =
+        clampOrDefault(s.alarm_low_snooze_minutes, 1, 240, 30, "alarm_low_snooze_minutes");
+    s.alarm_high_snooze_minutes =
+        clampOrDefault(s.alarm_high_snooze_minutes, 1, 240, 60, "alarm_high_snooze_minutes");
+
+    // Alarm trigger values share the same physiological range as the threshold limits.
+    s.alarm_urgent_low_mgdl =
+        clampOrDefault(s.alarm_urgent_low_mgdl, BG_MIN, BG_MAX, 55, "alarm_urgent_low_mgdl");
+    s.alarm_low_mgdl = clampOrDefault(s.alarm_low_mgdl, BG_MIN, BG_MAX, 70, "alarm_low_mgdl");
+    s.alarm_high_mgdl = clampOrDefault(s.alarm_high_mgdl, BG_MIN, BG_MAX, 280, "alarm_high_mgdl");
+
+    // default_clockface index — 8 faces (0..7).
+    s.default_clockface = clampOrDefault(s.default_clockface, 0, 7, 0, "default_clockface");
 }
 
 bool SettingsManager_::saveSettingsToFile() {
@@ -282,6 +370,8 @@ bool SettingsManager_::saveSettingsToFile() {
 
     (*doc)["dexcom_username"] = settings.dexcom_username;
     (*doc)["dexcom_password"] = settings.dexcom_password;
+    (*doc)["dexcom_application_id"] = settings.dexcom_application_id;
+    (*doc)["dexcom_application_id_japan"] = settings.dexcom_application_id_japan;
     switch (settings.dexcom_server) {
         case DEXCOM_SERVER::US:
             (*doc)["dexcom_server"] = "us";

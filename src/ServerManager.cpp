@@ -27,12 +27,24 @@ static String htmlEscape(const String& s) {
     for (unsigned int i = 0; i < s.length(); i++) {
         char c = s.charAt(i);
         switch (c) {
-            case '&':  out += "&amp;";  break;
-            case '<':  out += "&lt;";   break;
-            case '>':  out += "&gt;";   break;
-            case '"':  out += "&quot;"; break;
-            case '\'': out += "&#39;";  break;
-            default:   out += c;        break;
+            case '&':
+                out += "&amp;";
+                break;
+            case '<':
+                out += "&lt;";
+                break;
+            case '>':
+                out += "&gt;";
+                break;
+            case '"':
+                out += "&quot;";
+                break;
+            case '\'':
+                out += "&#39;";
+                break;
+            default:
+                out += c;
+                break;
         }
     }
     return out;
@@ -252,7 +264,14 @@ IPAddress ServerManager_::startWifi() {
 
     ip = setAPmode(getHostname(), AP_MODE_PASSWORD);
     this->isInAPMode = true;
-    WiFi.begin();
+    // Stop the STA-side auto-reconnect loop while in AP mode. setAutoReconnect()
+    // is enabled (and persisted in NVS) on prior successful connects, so on the
+    // next boot the radio quietly retries cached creds every ~3 seconds. On the
+    // ESP32's single radio those STA scans suppress AP beacons, leaving "nsclock"
+    // invisible to clients. We don't need background STA retries here — the user
+    // will save Wi-Fi via the captive portal and the device restarts to apply.
+    WiFi.disconnect(false, true);  // disconnect STA, keep softAP config intact
+    WiFi.mode(WIFI_AP);
     return ip;
 }
 
@@ -543,18 +562,22 @@ void ServerManager_::setupWebServer(IPAddress ip) {
     if (cachedNetworkCount > 0) {
         for (int i = 0; i < cachedNetworkCount; i++) {
             String ssid = WiFi.SSID(i);
-            if (ssid.length() == 0) continue;
+            if (ssid.length() == 0)
+                continue;
             bool dup = false;
             for (auto& net : cachedNetworks) {
                 if (net.first == ssid) {
-                    if (WiFi.RSSI(i) > net.second) net.second = WiFi.RSSI(i);
+                    if (WiFi.RSSI(i) > net.second)
+                        net.second = WiFi.RSSI(i);
                     dup = true;
                     break;
                 }
             }
-            if (!dup) cachedNetworks.push_back({ssid, WiFi.RSSI(i)});
+            if (!dup)
+                cachedNetworks.push_back({ssid, WiFi.RSSI(i)});
         }
-        std::sort(cachedNetworks.begin(), cachedNetworks.end(),
+        std::sort(
+            cachedNetworks.begin(), cachedNetworks.end(),
             [](const std::pair<String, int>& a, const std::pair<String, int>& b) {
                 return a.second > b.second;
             });
@@ -571,7 +594,8 @@ void ServerManager_::setupWebServer(IPAddress ip) {
         html.reserve(6144);
         html +=
             "<!DOCTYPE html><html lang=\"en\"><head>"
-            "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
+            "<meta charset=\"utf-8\"><meta name=\"viewport\" "
+            "content=\"width=device-width,initial-scale=1\">"
             "<title>Nightscout Clock</title><style>"
             "*{margin:0;padding:0;box-sizing:border-box}"
             "body{background:#1a1a1a;color:#e0e0e0;font-family:-apple-system,system-ui,sans-serif;"
@@ -579,7 +603,8 @@ void ServerManager_::setupWebServer(IPAddress ip) {
             "h1{font-size:20px;font-weight:600;margin-bottom:4px}"
             ".sub{font-size:13px;color:#888;margin-bottom:24px}"
             ".section{margin-top:28px;padding-top:20px;border-top:1px solid #333}"
-            ".sl{font-size:12px;color:#666;letter-spacing:.04em;text-transform:uppercase;margin-bottom:12px}"
+            ".sl{font-size:12px;color:#666;letter-spacing:.04em;text-transform:uppercase;margin-bottom:"
+            "12px}"
             ".nets{max-height:240px;overflow-y:auto;margin-bottom:8px}"
             ".net{display:block;padding:12px 0 12px 12px;border-bottom:1px solid #222;cursor:pointer;"
             "-webkit-tap-highlight-color:transparent}"
@@ -589,7 +614,8 @@ void ServerManager_::setupWebServer(IPAddress ip) {
             ".net input:checked~.name{color:#fff;font-weight:600}"
             ".net input:checked~.sig{color:#888}"
             ".f{margin-bottom:16px}"
-            ".fl{display:block;font-size:12px;color:#888;letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px}"
+            ".fl{display:block;font-size:12px;color:#888;letter-spacing:.04em;text-transform:uppercase;"
+            "margin-bottom:6px}"
             "input[type=text],input[type=password],input[type=email]{"
             "width:100%;background:rgba(255,255,255,0.05);border:none;"
             "border-bottom:2px solid #555;color:#fff;font-size:16px;padding:10px 8px;outline:none;"
@@ -618,7 +644,8 @@ void ServerManager_::setupWebServer(IPAddress ip) {
             ".fh{font-size:13px;color:#888;margin-bottom:14px;line-height:1.4}"
             ".fh strong{color:#e0e0e0}"
             "button[type=submit]{display:block;width:100%;background:#e0e0e0;color:#1a1a1a;border:none;"
-            "font-size:16px;font-weight:600;padding:14px;cursor:pointer;letter-spacing:.02em;margin-top:28px}"
+            "font-size:16px;font-weight:600;padding:14px;cursor:pointer;letter-spacing:.02em;margin-top:"
+            "28px}"
             "button[type=submit]:active{background:#fff}"
             "</style></head><body>"
             "<h1>Nightscout Clock</h1>"
@@ -632,10 +659,14 @@ void ServerManager_::setupWebServer(IPAddress ip) {
             for (const auto& net : cachedNetworks) {
                 int rssi = net.second;
                 String bars;
-                if (rssi > -50) bars = "&#9608;&#9608;&#9608;&#9608;";
-                else if (rssi > -60) bars = "&#9608;&#9608;&#9608;";
-                else if (rssi > -70) bars = "&#9608;&#9608;";
-                else bars = "&#9608;";
+                if (rssi > -50)
+                    bars = "&#9608;&#9608;&#9608;&#9608;";
+                else if (rssi > -60)
+                    bars = "&#9608;&#9608;&#9608;";
+                else if (rssi > -70)
+                    bars = "&#9608;&#9608;";
+                else
+                    bars = "&#9608;";
 
                 String escaped = htmlEscape(net.first);
                 html += "<label class=\"net\"><input type=\"radio\" name=\"ssid\" value=\"";
@@ -648,98 +679,110 @@ void ServerManager_::setupWebServer(IPAddress ip) {
             }
             html += "</div>";
         } else {
-            html += "<p style=\"font-size:13px;color:#888;margin-bottom:12px\">"
-                    "Nearby networks could not be detected. Enter your network name manually.</p>"
-                    "<div class=\"f\">"
-                    "<label class=\"fl\" for=\"ssid\">Network name</label>"
-                    "<input type=\"text\" id=\"ssid\" name=\"ssid\" required>"
-                    "</div>";
+            html +=
+                "<p style=\"font-size:13px;color:#888;margin-bottom:12px\">"
+                "Nearby networks could not be detected. Enter your network name manually.</p>"
+                "<div class=\"f\">"
+                "<label class=\"fl\" for=\"ssid\">Network name</label>"
+                "<input type=\"text\" id=\"ssid\" name=\"ssid\" required>"
+                "</div>";
         }
 
         // WiFi password — autocomplete helps iOS offer saved passwords without switching apps
-        html += "<div class=\"f\">"
-                "<label class=\"fl\" for=\"password\">WiFi password</label>"
-                "<input type=\"password\" id=\"password\" name=\"password\" autocomplete=\"current-password\">"
-                "<p style=\"font-size:11px;color:#555;margin-top:6px\">"
-                "Tap the key icon above your keyboard for saved passwords</p>"
-                "</div>";
+        html +=
+            "<div class=\"f\">"
+            "<label class=\"fl\" for=\"password\">WiFi password</label>"
+            "<input type=\"password\" id=\"password\" name=\"password\" "
+            "autocomplete=\"current-password\">"
+            "<p style=\"font-size:11px;color:#555;margin-top:6px\">"
+            "Tap the key icon above your keyboard for saved passwords</p>"
+            "</div>";
 
         // Zip code for timezone + weather location
-        html += "<div class=\"f\">"
-                "<label class=\"fl\" for=\"zip\">Zip code</label>"
-                "<input type=\"text\" id=\"zip\" name=\"zip\" placeholder=\"e.g. 23220\" "
-                "inputmode=\"numeric\" maxlength=\"10\">"
-                "<p style=\"font-size:11px;color:#555;margin-top:6px\">"
-                "For local time and weather (optional)</p>"
-                "</div>";
+        html +=
+            "<div class=\"f\">"
+            "<label class=\"fl\" for=\"zip\">Zip code</label>"
+            "<input type=\"text\" id=\"zip\" name=\"zip\" placeholder=\"e.g. 23220\" "
+            "inputmode=\"numeric\" maxlength=\"10\">"
+            "<p style=\"font-size:11px;color:#555;margin-top:6px\">"
+            "For local time and weather (optional)</p>"
+            "</div>";
 
         // CGM source section
-        html += "<div class=\"section\">"
-                "<p class=\"sl\">Glucose data source</p>"
-                "<div class=\"cgm\">"
-                "<input type=\"radio\" name=\"data_source\" value=\"dexcom\" id=\"sd\">"
-                "<label class=\"cs\" for=\"sd\"><span class=\"cn\">Dexcom</span>"
-                "<span class=\"ch\">G6, G7, ONE+</span></label>"
-                "<input type=\"radio\" name=\"data_source\" value=\"librelinkup\" id=\"sl\">"
-                "<label class=\"cs\" for=\"sl\"><span class=\"cn\">Libre</span>"
-                "<span class=\"ch\">LibreLinkUp</span></label>"
-                "<input type=\"radio\" name=\"data_source\" value=\"nightscout\" id=\"sn\">"
-                "<label class=\"cs\" for=\"sn\"><span class=\"cn\">Nightscout</span>"
-                "<span class=\"ch\">Self-hosted or managed</span></label>"
-                // Dexcom fields
-                "<div class=\"cf\" id=\"fd\">"
-                "<div class=\"fh\">Use the <strong>sensor wearer's</strong> account, not a follower.</div>"
-                "<div class=\"f\"><label class=\"fl\">Username</label>"
-                "<input type=\"text\" name=\"dexcom_username\" autocomplete=\"username\"></div>"
-                "<div class=\"f\"><label class=\"fl\">Password</label>"
-                "<input type=\"password\" name=\"dexcom_password\" autocomplete=\"current-password\"></div>"
-                "<div class=\"f\"><label class=\"fl\">Region</label>"
-                "<div class=\"rg\">"
-                "<label><input type=\"radio\" name=\"dexcom_server\" value=\"us\"><span>US</span></label>"
-                "<label><input type=\"radio\" name=\"dexcom_server\" value=\"ous\"><span>Outside US</span></label>"
-                "<label><input type=\"radio\" name=\"dexcom_server\" value=\"jp\"><span>Japan</span></label>"
-                "</div></div></div>"
-                // Libre fields
-                "<div class=\"cf\" id=\"fl2\">"
-                "<div class=\"f\"><label class=\"fl\">Email</label>"
-                "<input type=\"email\" name=\"librelinkup_email\" autocomplete=\"email\"></div>"
-                "<div class=\"f\"><label class=\"fl\">Password</label>"
-                "<input type=\"password\" name=\"librelinkup_password\" autocomplete=\"current-password\"></div>"
-                "<div class=\"f\"><label class=\"fl\">Region</label>"
-                "<select name=\"librelinkup_region\">"
-                "<option value=\"\">Choose...</option>"
-                "<option value=\"US\">United States</option>"
-                "<option value=\"EU\">Europe</option>"
-                "<option value=\"EU2\">Europe 2</option>"
-                "<option value=\"DE\">Germany</option>"
-                "<option value=\"FR\">France</option>"
-                "<option value=\"AU\">Australia</option>"
-                "<option value=\"CA\">Canada</option>"
-                "<option value=\"JP\">Japan</option>"
-                "</select></div></div>"
-                // Nightscout fields
-                "<div class=\"cf\" id=\"fn\">"
-                "<div class=\"f\"><label class=\"fl\">Nightscout URL</label>"
-                "<input type=\"text\" name=\"nightscout_url\" placeholder=\"https://yoursite.herokuapp.com\"></div>"
-                "<div class=\"f\"><label class=\"fl\">API secret <span style=\"text-transform:none;color:#555\">"
-                "(if required)</span></label>"
-                "<input type=\"password\" name=\"api_secret\"></div></div>"
-                "</div></div>";
+        html +=
+            "<div class=\"section\">"
+            "<p class=\"sl\">Glucose data source</p>"
+            "<div class=\"cgm\">"
+            "<input type=\"radio\" name=\"data_source\" value=\"dexcom\" id=\"sd\">"
+            "<label class=\"cs\" for=\"sd\"><span class=\"cn\">Dexcom</span>"
+            "<span class=\"ch\">G6, G7, ONE+</span></label>"
+            "<input type=\"radio\" name=\"data_source\" value=\"librelinkup\" id=\"sl\">"
+            "<label class=\"cs\" for=\"sl\"><span class=\"cn\">Libre</span>"
+            "<span class=\"ch\">LibreLinkUp</span></label>"
+            "<input type=\"radio\" name=\"data_source\" value=\"nightscout\" id=\"sn\">"
+            "<label class=\"cs\" for=\"sn\"><span class=\"cn\">Nightscout</span>"
+            "<span class=\"ch\">Self-hosted or managed</span></label>"
+            // Dexcom fields
+            "<div class=\"cf\" id=\"fd\">"
+            "<div class=\"fh\">Use the <strong>sensor wearer's</strong> account, not a follower.</div>"
+            "<div class=\"f\"><label class=\"fl\">Username</label>"
+            "<input type=\"text\" name=\"dexcom_username\" autocomplete=\"username\"></div>"
+            "<div class=\"f\"><label class=\"fl\">Password</label>"
+            "<input type=\"password\" name=\"dexcom_password\" autocomplete=\"current-password\"></div>"
+            "<div class=\"f\"><label class=\"fl\">Region</label>"
+            "<div class=\"rg\">"
+            "<label><input type=\"radio\" name=\"dexcom_server\" value=\"us\"><span>US</span></label>"
+            "<label><input type=\"radio\" name=\"dexcom_server\" value=\"ous\"><span>Outside "
+            "US</span></label>"
+            "<label><input type=\"radio\" name=\"dexcom_server\" value=\"jp\"><span>Japan</span></label>"
+            "</div></div></div>"
+            // Libre fields
+            "<div class=\"cf\" id=\"fl2\">"
+            "<div class=\"f\"><label class=\"fl\">Email</label>"
+            "<input type=\"email\" name=\"librelinkup_email\" autocomplete=\"email\"></div>"
+            "<div class=\"f\"><label class=\"fl\">Password</label>"
+            "<input type=\"password\" name=\"librelinkup_password\" "
+            "autocomplete=\"current-password\"></div>"
+            "<div class=\"f\"><label class=\"fl\">Region</label>"
+            "<select name=\"librelinkup_region\">"
+            "<option value=\"\">Choose...</option>"
+            "<option value=\"US\">United States</option>"
+            "<option value=\"EU\">Europe</option>"
+            "<option value=\"EU2\">Europe 2</option>"
+            "<option value=\"DE\">Germany</option>"
+            "<option value=\"FR\">France</option>"
+            "<option value=\"AU\">Australia</option>"
+            "<option value=\"CA\">Canada</option>"
+            "<option value=\"JP\">Japan</option>"
+            "</select></div></div>"
+            // Nightscout fields
+            "<div class=\"cf\" id=\"fn\">"
+            "<div class=\"f\"><label class=\"fl\">Nightscout URL</label>"
+            "<input type=\"text\" name=\"nightscout_url\" "
+            "placeholder=\"https://yoursite.herokuapp.com\"></div>"
+            "<div class=\"f\"><label class=\"fl\">API secret <span "
+            "style=\"text-transform:none;color:#555\">"
+            "(if required)</span></label>"
+            "<input type=\"password\" name=\"api_secret\"></div></div>"
+            "</div></div>";
 
         // Optional device PIN — enables web authentication to protect settings
-        html += "<div class=\"section\">"
-                "<p class=\"sl\">Device PIN <span style=\"text-transform:none;color:#555\">(optional)</span></p>"
-                "<p style=\"font-size:13px;color:#888;margin-bottom:12px;line-height:1.4\">"
-                "Set a 4&ndash;6 digit PIN to protect the settings page from unauthorized access.</p>"
-                "<div class=\"f\">"
-                "<label class=\"fl\" for=\"device_pin\">PIN</label>"
-                "<input type=\"password\" id=\"device_pin\" name=\"device_pin\" "
-                "inputmode=\"numeric\" pattern=\"[0-9]{4,6}\" maxlength=\"6\" "
-                "autocomplete=\"off\" placeholder=\"4-6 digits\">"
-                "</div></div>";
+        html +=
+            "<div class=\"section\">"
+            "<p class=\"sl\">Device PIN <span "
+            "style=\"text-transform:none;color:#555\">(optional)</span></p>"
+            "<p style=\"font-size:13px;color:#888;margin-bottom:12px;line-height:1.4\">"
+            "Set a 4&ndash;6 digit PIN to protect the settings page from unauthorized access.</p>"
+            "<div class=\"f\">"
+            "<label class=\"fl\" for=\"device_pin\">PIN</label>"
+            "<input type=\"password\" id=\"device_pin\" name=\"device_pin\" "
+            "inputmode=\"numeric\" pattern=\"[0-9]{4,6}\" maxlength=\"6\" "
+            "autocomplete=\"off\" placeholder=\"4-6 digits\">"
+            "</div></div>";
 
-        html += "<button type=\"submit\">Connect &amp; start</button>"
-                "</form></body></html>";
+        html +=
+            "<button type=\"submit\">Connect &amp; start</button>"
+            "</form></body></html>";
 
         request->send(200, "text/html", html);
     };
@@ -756,9 +799,9 @@ void ServerManager_::setupWebServer(IPAddress ip) {
     // Combined setup endpoint — WiFi + CGM source in one form POST from captive portal
     ws->on("/api/setup", HTTP_POST, [this](AsyncWebServerRequest* request) {
         // Validate required field
-        if (!request->hasParam("ssid", true) ||
-            request->getParam("ssid", true)->value().length() == 0) {
-            request->send(400, "text/html",
+        if (!request->hasParam("ssid", true) || request->getParam("ssid", true)->value().length() == 0) {
+            request->send(
+                400, "text/html",
                 "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
                 "<style>body{background:#1a1a1a;color:#F04848;font-family:sans-serif;padding:24px}"
                 "a{color:#58a6ff}</style></head><body>"
@@ -778,34 +821,45 @@ void ServerManager_::setupWebServer(IPAddress ip) {
         // CGM data source
         if (request->hasParam("data_source", true)) {
             String source = request->getParam("data_source", true)->value();
-            if (source == "nightscout") SettingsManager.settings.bg_source = BG_SOURCE::NIGHTSCOUT;
-            else if (source == "dexcom") SettingsManager.settings.bg_source = BG_SOURCE::DEXCOM;
-            else if (source == "librelinkup") SettingsManager.settings.bg_source = BG_SOURCE::LIBRELINKUP;
+            if (source == "nightscout")
+                SettingsManager.settings.bg_source = BG_SOURCE::NIGHTSCOUT;
+            else if (source == "dexcom")
+                SettingsManager.settings.bg_source = BG_SOURCE::DEXCOM;
+            else if (source == "librelinkup")
+                SettingsManager.settings.bg_source = BG_SOURCE::LIBRELINKUP;
         }
 
         // Dexcom credentials
         if (request->hasParam("dexcom_username", true)) {
-            SettingsManager.settings.dexcom_username = request->getParam("dexcom_username", true)->value();
+            SettingsManager.settings.dexcom_username =
+                request->getParam("dexcom_username", true)->value();
         }
         if (request->hasParam("dexcom_password", true)) {
-            SettingsManager.settings.dexcom_password = request->getParam("dexcom_password", true)->value();
+            SettingsManager.settings.dexcom_password =
+                request->getParam("dexcom_password", true)->value();
         }
         if (request->hasParam("dexcom_server", true)) {
             String server = request->getParam("dexcom_server", true)->value();
-            if (server == "us") SettingsManager.settings.dexcom_server = DEXCOM_SERVER::US;
-            else if (server == "ous") SettingsManager.settings.dexcom_server = DEXCOM_SERVER::NON_US;
-            else if (server == "jp") SettingsManager.settings.dexcom_server = DEXCOM_SERVER::JAPAN;
+            if (server == "us")
+                SettingsManager.settings.dexcom_server = DEXCOM_SERVER::US;
+            else if (server == "ous")
+                SettingsManager.settings.dexcom_server = DEXCOM_SERVER::NON_US;
+            else if (server == "jp")
+                SettingsManager.settings.dexcom_server = DEXCOM_SERVER::JAPAN;
         }
 
         // LibreLinkUp credentials
         if (request->hasParam("librelinkup_email", true)) {
-            SettingsManager.settings.librelinkup_email = request->getParam("librelinkup_email", true)->value();
+            SettingsManager.settings.librelinkup_email =
+                request->getParam("librelinkup_email", true)->value();
         }
         if (request->hasParam("librelinkup_password", true)) {
-            SettingsManager.settings.librelinkup_password = request->getParam("librelinkup_password", true)->value();
+            SettingsManager.settings.librelinkup_password =
+                request->getParam("librelinkup_password", true)->value();
         }
         if (request->hasParam("librelinkup_region", true)) {
-            SettingsManager.settings.librelinkup_region = request->getParam("librelinkup_region", true)->value();
+            SettingsManager.settings.librelinkup_region =
+                request->getParam("librelinkup_region", true)->value();
         }
 
         // Nightscout credentials
@@ -831,9 +885,11 @@ void ServerManager_::setupWebServer(IPAddress ip) {
         }
 
         if (!SettingsManager.saveSettingsToFile()) {
-            request->send(500, "text/html",
+            request->send(
+                500, "text/html",
                 "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
-                "<style>body{background:#1a1a1a;color:#F04848;font-family:sans-serif;padding:24px}</style>"
+                "<style>body{background:#1a1a1a;color:#F04848;font-family:sans-serif;padding:24px}</"
+                "style>"
                 "</head><body><h1>Save failed</h1>"
                 "<p>Could not save settings to flash. Please try again.</p>"
                 "<a href=\"/captive.html\" style=\"color:#58a6ff\">Retry setup</a></body></html>");
@@ -847,8 +903,11 @@ void ServerManager_::setupWebServer(IPAddress ip) {
             "color:#e0e0e0;font-family:sans-serif;padding:24px}h1{font-size:20px;margin-bottom:8px}"
             ".ok{color:#07E0A0}</style></head><body>"
             "<h1>Setup complete</h1>"
-            "<p class=\"ok\">Connecting to <strong>" + ssid + "</strong>...</p>"
-            "<p style=\"margin-top:12px;color:#888\">The clock will show your glucose data within 2 minutes.</p>"
+            "<p class=\"ok\">Connecting to <strong>" +
+            ssid +
+            "</strong>...</p>"
+            "<p style=\"margin-top:12px;color:#888\">The clock will show your glucose data within 2 "
+            "minutes.</p>"
             "</body></html>";
         request->send(200, "text/html", responseHtml);
 
@@ -859,7 +918,8 @@ void ServerManager_::setupWebServer(IPAddress ip) {
     // Legacy WiFi-only endpoint (kept for backwards compatibility)
     ws->on("/api/wifi", HTTP_POST, [this](AsyncWebServerRequest* request) {
         if (!request->hasParam("ssid", true)) {
-            request->send(400, "text/html",
+            request->send(
+                400, "text/html",
                 "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" "
                 "content=\"width=device-width,initial-scale=1\"><style>body{background:#1a1a1a;"
                 "color:#F04848;font-family:sans-serif;padding:24px}</style></head><body>"
@@ -868,16 +928,18 @@ void ServerManager_::setupWebServer(IPAddress ip) {
         }
 
         String ssid = request->getParam("ssid", true)->value();
-        String password = request->hasParam("password", true)
-            ? request->getParam("password", true)->value() : "";
+        String password =
+            request->hasParam("password", true) ? request->getParam("password", true)->value() : "";
 
         SettingsManager.settings.ssid = ssid;
         SettingsManager.settings.wifi_password = password;
 
         if (!SettingsManager.saveSettingsToFile()) {
-            request->send(500, "text/html",
+            request->send(
+                500, "text/html",
                 "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
-                "<style>body{background:#1a1a1a;color:#F04848;font-family:sans-serif;padding:24px}</style>"
+                "<style>body{background:#1a1a1a;color:#F04848;font-family:sans-serif;padding:24px}</"
+                "style>"
                 "</head><body><h1>Save failed</h1>"
                 "<p>Could not save settings to flash. Please try again.</p>"
                 "<a href=\"/captive.html\" style=\"color:#58a6ff\">Retry setup</a></body></html>");
@@ -891,8 +953,11 @@ void ServerManager_::setupWebServer(IPAddress ip) {
             "color:#e0e0e0;font-family:sans-serif;padding:24px}h1{font-size:20px;margin-bottom:8px}"
             ".ok{color:#07E0A0}a{color:#58a6ff}</style></head><body>"
             "<h1>WiFi saved</h1>"
-            "<p class=\"ok\">The clock will now restart and connect to <strong>" + escapedSsid + "</strong>.</p>"
-            "<p style=\"margin-top:16px;color:#888\">After the clock restarts, open your browser and go to "
+            "<p class=\"ok\">The clock will now restart and connect to <strong>" +
+            escapedSsid +
+            "</strong>.</p>"
+            "<p style=\"margin-top:16px;color:#888\">After the clock restarts, open your browser and go "
+            "to "
             "the IP address shown on the clock display to finish setup.</p>"
             "</body></html>";
         request->send(200, "text/html", responseHtml);

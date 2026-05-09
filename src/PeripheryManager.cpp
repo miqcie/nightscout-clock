@@ -2,9 +2,9 @@
 #include <BGAlarmManager.h>
 #include <LightDependentResistor.h>
 #include <LittleFS.h>
+#include <PeripheryManager.h>
 #include <melody_factory.h>
 #include <melody_player.h>
-#include <PeripheryManager.h>
 
 #include "Adafruit_SHT31.h"
 #include "DisplayManager.h"
@@ -198,7 +198,7 @@ void PeripheryManager_::tick() {
                     // Knee bends (may need to tweak here depending on individual devices)
                     const float LUX_KNEE_DARK = 1.0f;   // <=1 lux → stay near MIN_BRIGHTNESS
                     const float LUX_KNEE_ROOM = 30.0f;  // ~30 lux = typical indoor
-                    const float LUX_MAX_REF = 300.0f;   // treat this as “very bright indoor”; cap above
+                    const float LUX_MAX_REF = 300.0f;  // treat this as “very bright indoor”; cap above
 
                     float t;  // 0..1 brightness control
 

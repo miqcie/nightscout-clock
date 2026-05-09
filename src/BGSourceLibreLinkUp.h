@@ -23,8 +23,8 @@ public:
     AuthTicket() = default;
     AuthTicket(String token, unsigned long long expires, unsigned long long duration, String accountId)
         : token(token), expires(expires), duration(duration), accountId(accountId) {}
-    unsigned long long expires;
-    unsigned long long duration;
+    unsigned long long expires = 0;
+    unsigned long long duration = 0;
     String token;
     String accountId;
     String patientId;

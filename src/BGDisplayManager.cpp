@@ -20,7 +20,6 @@ BGDisplayManager_& bgDisplayManager = bgDisplayManager.getInstance();
 
 void BGDisplayManager_::setup() {
     glucoseIntervals = GlucoseIntervals();
-    /// TODO: Add urgent values to settings
 
     glucoseIntervals.addInterval(1, SettingsManager.settings.bg_low_urgent_limit, BG_LEVEL::URGENT_LOW);
     glucoseIntervals.addInterval(
@@ -35,21 +34,29 @@ void BGDisplayManager_::setup() {
     glucoseIntervals.addInterval(
         SettingsManager.settings.bg_high_urgent_limit, 401, BG_LEVEL::URGENT_HIGH);
 
-    faces.push_back(new BGDisplayFaceSimple());
+    static BGDisplayFaceSimple faceSimple;
+    faces.push_back(&faceSimple);
     facesNames[0] = "Simple";
-    faces.push_back(new BGDisplayFaceGraph());
+    static BGDisplayFaceGraph faceGraph;
+    faces.push_back(&faceGraph);
     facesNames[1] = "Full graph";
-    faces.push_back(new BGDisplayFaceGraphAndBG());
+    static BGDisplayFaceGraphAndBG faceGraphAndBG;
+    faces.push_back(&faceGraphAndBG);
     facesNames[2] = "Graph and BG";
-    faces.push_back(new BGDisplayFaceBigText());
+    static BGDisplayFaceBigText faceBigText;
+    faces.push_back(&faceBigText);
     facesNames[3] = "Big text";
-    faces.push_back(new BGDisplayFaceValueAndDiff());
+    static BGDisplayFaceValueAndDiff faceValueAndDiff;
+    faces.push_back(&faceValueAndDiff);
     facesNames[4] = "Value and diff";
-    faces.push_back(new BGDisplayFaceClock());
+    static BGDisplayFaceClock faceClock;
+    faces.push_back(&faceClock);
     facesNames[5] = "Clock and value";
-    faces.push_back(new BGDisplayFaceRoomTemp());
+    static BGDisplayFaceRoomTemp faceRoomTemp;
+    faces.push_back(&faceRoomTemp);
     facesNames[6] = "Room temp";
-    faces.push_back(new BGDisplayFaceWeather());
+    static BGDisplayFaceWeather faceWeather;
+    faces.push_back(&faceWeather);
     facesNames[7] = "Weather";
 
     currentFaceIndex = SettingsManager.settings.default_clockface;
@@ -109,7 +116,8 @@ void BGDisplayManager_::refreshCachedEnabledFaces() {
 
 bool BGDisplayManager_::isFaceEnabled(int faceIndex) {
     for (int idx : cachedEnabledFaces) {
-        if (idx == faceIndex) return true;
+        if (idx == faceIndex)
+            return true;
     }
     return false;
 }
@@ -133,7 +141,8 @@ void BGDisplayManager_::tick() {
     // Auto-rotate faces on a timer
     if (SettingsManager.settings.face_auto_rotate) {
         unsigned long now = millis();
-        unsigned long intervalMs = (unsigned long)SettingsManager.settings.face_rotate_interval_sec * 1000UL;
+        unsigned long intervalMs =
+            (unsigned long)SettingsManager.settings.face_rotate_interval_sec * 1000UL;
         if (now - lastFaceRotateMs >= intervalMs) {
             lastFaceRotateMs = now;
             int nextFace = getNextEnabledFace(currentFaceIndex);
@@ -144,9 +153,7 @@ void BGDisplayManager_::tick() {
     maybeRrefreshScreen();
 }
 
-void BGDisplayManager_::resetAutoRotateTimer() {
-    lastFaceRotateMs = millis();
-}
+void BGDisplayManager_::resetAutoRotateTimer() { lastFaceRotateMs = millis(); }
 
 void BGDisplayManager_::maybeRrefreshScreen(bool force) {
     auto currentEpoch = ServerManager.getUtcEpoch();
@@ -178,7 +185,7 @@ void BGDisplayManager_::maybeRrefreshScreen(bool force) {
     }
 }
 
-void BGDisplayManager_::showData(std::list<GlucoseReading> glucoseReadings) {
+void BGDisplayManager_::showData(const std::list<GlucoseReading>& glucoseReadings) {
     if (glucoseReadings.size() == 0) {
         currentFace->showNoData();
         return;
@@ -219,7 +226,7 @@ void BGDisplayManager_::drawTimerBlocks(
 
     // minimal block size is 1 pixel, size between blocks is 1 pixel, so we get width, subtract spaces
     // between lines and divide by the maximum number of lines
-    int blockSize = blockSize = (width - 4) / MAX_BLOXCS;
+    int blockSize = (width - 4) / MAX_BLOXCS;
     if (blockSize < 1) {
 #ifdef DEBUG_DISPLAY
         DEBUG_PRINTLN("Block size is less than 1, not drawing timer blocks");

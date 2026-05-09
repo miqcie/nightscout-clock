@@ -11,12 +11,8 @@
 // Static member initialization
 WeatherData BGDisplayFaceWeather::cachedWeather = {0, 0, -1, 0, false};
 
-static const unsigned long WEATHER_CACHE_MS = 30UL * 60UL * 1000UL;         // refresh interval
+static const unsigned long WEATHER_CACHE_MS = 30UL * 60UL * 1000UL;            // refresh interval
 static const unsigned long WEATHER_MAX_STALE_MS = 2UL * 60UL * 60UL * 1000UL;  // 2hr max age
-
-// Fallback location (Richmond, VA) — used only when no zip code was entered
-static const float FALLBACK_LAT = 37.5407f;
-static const float FALLBACK_LON = -77.4360f;
 
 // IANA timezone → POSIX TZ string for common US timezones
 static String ianaToPosix(const String& iana) {
@@ -46,16 +42,20 @@ static const int MAX_ZIP_ATTEMPTS = 3;
 static unsigned long lastZipAttemptMs = 0;
 
 void BGDisplayFaceWeather::resolveZipLocation() {
-    if (zipResolved) return;
-    if (SettingsManager.settings.setup_zip.length() == 0) return;
+    if (zipResolved)
+        return;
+    if (SettingsManager.settings.setup_zip.length() == 0)
+        return;
     if (SettingsManager.settings.weather_lat != 0) {
         zipResolved = true;  // already resolved in a previous boot
         return;
     }
     // Backoff: wait 30s between attempts
-    if (zipResolveAttempts > 0 && (millis() - lastZipAttemptMs) < 30000UL) return;
+    if (zipResolveAttempts > 0 && (millis() - lastZipAttemptMs) < 30000UL)
+        return;
     if (zipResolveAttempts >= MAX_ZIP_ATTEMPTS) {
-        DEBUG_PRINTF("Zip geocoding gave up after %d attempts, using fallback location", MAX_ZIP_ATTEMPTS);
+        DEBUG_PRINTF(
+            "Zip geocoding gave up after %d attempts; weather face will show no data", MAX_ZIP_ATTEMPTS);
         zipResolved = true;
         return;
     }
@@ -64,8 +64,9 @@ void BGDisplayFaceWeather::resolveZipLocation() {
     zipResolveAttempts++;
 
     HTTPClient http;
-    String url = "https://geocoding-api.open-meteo.com/v1/search?name=" +
-                 SettingsManager.settings.setup_zip + "&count=1&language=en&format=json";
+    String url =
+        "https://geocoding-api.open-meteo.com/v1/search?name=" + SettingsManager.settings.setup_zip +
+        "&count=1&language=en&format=json";
     http.begin(url);
     http.setTimeout(5000);
     int httpCode = http.GET();
@@ -86,20 +87,22 @@ void BGDisplayFaceWeather::resolveZipLocation() {
                 setenv("TZ", posix.c_str(), 1);
                 tzset();
             } else if (posix.length() == 0) {
-                DEBUG_PRINTF("Unrecognized timezone '%s' from geocoding, clock time may be wrong", iana.c_str());
+                DEBUG_PRINTF(
+                    "Unrecognized timezone '%s' from geocoding, clock time may be wrong", iana.c_str());
             }
 
             if (!SettingsManager.saveSettingsToFile()) {
                 DEBUG_PRINTLN("WARNING: Resolved zip location but failed to save to flash");
             }
-            DEBUG_PRINTF("Zip resolved: %.4f, %.4f, tz=%s",
-                SettingsManager.settings.weather_lat,
+            DEBUG_PRINTF(
+                "Zip resolved: %.4f, %.4f, tz=%s", SettingsManager.settings.weather_lat,
                 SettingsManager.settings.weather_lon, iana.c_str());
             zipResolved = true;
         }
     } else {
-        DEBUG_PRINTF("Zip geocoding attempt %d/%d failed, HTTP %d",
-            zipResolveAttempts, MAX_ZIP_ATTEMPTS, httpCode);
+        DEBUG_PRINTF(
+            "Zip geocoding attempt %d/%d failed, HTTP %d", zipResolveAttempts, MAX_ZIP_ATTEMPTS,
+            httpCode);
     }
 
     http.end();
@@ -114,17 +117,23 @@ void BGDisplayFaceWeather::fetchWeather() {
         return;
     }
 
-    float lat = SettingsManager.settings.weather_lat != 0
-        ? SettingsManager.settings.weather_lat : FALLBACK_LAT;
-    float lon = SettingsManager.settings.weather_lon != 0
-        ? SettingsManager.settings.weather_lon : FALLBACK_LON;
+    // Without a known location we'd be showing weather for the wrong place. Skip the fetch
+    // and let the face render a "no data" indicator instead.
+    if (SettingsManager.settings.weather_lat == 0 && SettingsManager.settings.weather_lon == 0) {
+        cachedWeather.valid = false;
+        return;
+    }
+
+    float lat = SettingsManager.settings.weather_lat;
+    float lon = SettingsManager.settings.weather_lon;
 
     String tempUnit = IS_CELSIUS ? "celsius" : "fahrenheit";
     HTTPClient http;
     String url = "https://api.open-meteo.com/v1/forecast?latitude=" + String(lat, 4) +
                  "&longitude=" + String(lon, 4) +
                  "&current=temperature_2m,relative_humidity_2m,weather_code"
-                 "&temperature_unit=" + tempUnit;
+                 "&temperature_unit=" +
+                 tempUnit;
 
     http.begin(url);
     http.setTimeout(5000);
@@ -142,8 +151,9 @@ void BGDisplayFaceWeather::fetchWeather() {
             cachedWeather.fetchedAtMs = millis();
             cachedWeather.valid = true;
 
-            DEBUG_PRINTF("Weather fetched: %.1fF, %d%% humidity, code %d",
-                cachedWeather.temperature, cachedWeather.humidity, cachedWeather.weatherCode);
+            DEBUG_PRINTF(
+                "Weather fetched: %.1fF, %d%% humidity, code %d", cachedWeather.temperature,
+                cachedWeather.humidity, cachedWeather.weatherCode);
         } else {
             DEBUG_PRINTF("Weather JSON parse error: %s", error.c_str());
         }
@@ -161,12 +171,18 @@ void BGDisplayFaceWeather::fetchWeather() {
 
 uint16_t BGDisplayFaceWeather::weatherCodeToColor(int code) {
     // WMO weather codes → display color
-    if (code == 0) return COLOR_YELLOW;              // Clear sky → sunny yellow
-    if (code <= 3) return COLOR_WHITE;               // Partly cloudy → white
-    if (code <= 48) return COLOR_GRAY;               // Fog → gray
-    if (code <= 67 || (code >= 80 && code <= 82)) return COLOR_BLUE;  // Rain → blue
-    if (code <= 77 || (code >= 85 && code <= 86)) return COLOR_CYAN;  // Snow → cyan
-    if (code >= 95) return COLOR_RED;                // Thunderstorm → red
+    if (code == 0)
+        return COLOR_YELLOW;  // Clear sky → sunny yellow
+    if (code <= 3)
+        return COLOR_WHITE;  // Partly cloudy → white
+    if (code <= 48)
+        return COLOR_GRAY;  // Fog → gray
+    if (code <= 67 || (code >= 80 && code <= 82))
+        return COLOR_BLUE;  // Rain → blue
+    if (code <= 77 || (code >= 85 && code <= 86))
+        return COLOR_CYAN;  // Snow → cyan
+    if (code >= 95)
+        return COLOR_RED;  // Thunderstorm → red
     return COLOR_WHITE;
 }
 

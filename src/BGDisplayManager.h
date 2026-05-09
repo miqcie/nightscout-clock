@@ -12,16 +12,16 @@
 #include "BGDisplayFaceClock.h"
 #include "BGDisplayFaceGraph.h"
 #include "BGDisplayFaceGraphAndBG.h"
+#include "BGDisplayFaceRoomTemp.h"
 #include "BGDisplayFaceSimple.h"
 #include "BGDisplayFaceValueAndDiff.h"
-#include "BGDisplayFaceRoomTemp.h"
 #include "BGDisplayFaceWeather.h"
 #include "BGSource.h"
 
 struct GlucoseInterval {
     int low_boundary;
     int high_boundary;
-    BG_LEVEL intarval_type;
+    BG_LEVEL interval_type;
 };
 
 struct GlucoseIntervals {
@@ -33,7 +33,7 @@ struct GlucoseIntervals {
     BG_LEVEL getBGLevel(int value) {
         for (const GlucoseInterval& interval : intervals) {
             if (value >= interval.low_boundary && value <= interval.high_boundary) {
-                return interval.intarval_type;
+                return interval.interval_type;
             }
         }
         return BG_LEVEL::INVALID;  // Default to INVALID if not found in any interval
@@ -44,7 +44,7 @@ struct GlucoseIntervals {
         for (const GlucoseInterval& interval : intervals) {
             ss += "  Low: " + String(interval.low_boundary) +
                   ", High: " + String(interval.high_boundary) + ", Level: ";
-            switch (interval.intarval_type) {
+            switch (interval.interval_type) {
                 case BG_LEVEL::URGENT_HIGH:
                     ss += "URGENT_HIGH";
                     break;
@@ -88,7 +88,7 @@ public:
     void setup();
     void tick();
     void maybeRrefreshScreen(bool force = false);
-    void showData(std::list<GlucoseReading> glucoseReadings);
+    void showData(const std::list<GlucoseReading>& glucoseReadings);
     GlucoseReading* getLastDisplayedGlucoseReading();
     GlucoseIntervals getGlucoseIntervals();
 
