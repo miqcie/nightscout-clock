@@ -81,7 +81,12 @@ JsonDocument* SettingsManager_::readConfigJsonFile() {
         }
         return doc;
     } else {
-        DEBUG_PRINTLN("Cannot read configuration file — config.json missing");
+        // First boot (or post-uploadfs): config.json is gitignored and not shipped in data/.
+        // Bootstrap by copying config_initial.json → config.json, then restart so the next
+        // boot loads the freshly created file. Restoring the upstream auto-recovery path that
+        // was inadvertently dropped on this fork — without it, a fresh FS upload bricks setup.
+        DEBUG_PRINTLN("Cannot read configuration file — config.json missing, bootstrapping");
+        factoryReset();
         return NULL;
     }
 }
