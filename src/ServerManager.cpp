@@ -264,12 +264,13 @@ IPAddress ServerManager_::startWifi() {
 
     ip = setAPmode(getHostname(), AP_MODE_PASSWORD);
     this->isInAPMode = true;
-    // Disable STA reconnect storm while in AP mode. WiFi.begin() with no args
-    // retries cached NVS credentials every ~3s; on the ESP32's single radio
-    // those scans suppress AP beacons so clients can't see "nsclock" in their
-    // network list. The user will configure Wi-Fi via the captive portal and
-    // the device restarts to apply, so we don't need background STA retries.
-    WiFi.disconnect(true, true);
+    // Stop the STA-side auto-reconnect loop while in AP mode. setAutoReconnect()
+    // is enabled (and persisted in NVS) on prior successful connects, so on the
+    // next boot the radio quietly retries cached creds every ~3 seconds. On the
+    // ESP32's single radio those STA scans suppress AP beacons, leaving "nsclock"
+    // invisible to clients. We don't need background STA retries here — the user
+    // will save Wi-Fi via the captive portal and the device restarts to apply.
+    WiFi.disconnect(false, true);  // disconnect STA, keep softAP config intact
     WiFi.mode(WIFI_AP);
     return ip;
 }

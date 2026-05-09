@@ -19,7 +19,7 @@ public:
     bool loadSettingsFromFile();
     bool saveSettingsToFile();
     bool trySaveJsonAsSettings(const JsonDocument& doc);
-    void factoryReset();
+    bool factoryReset();
 
     Settings settings;
 };

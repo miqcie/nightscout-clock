@@ -44,7 +44,13 @@ bool copyFile(const char* srcPath, const char* destPath) {
 
     while (srcFile.available()) {
         char data = srcFile.read();
-        destFile.write(data);
+        if (destFile.write(data) != 1) {
+            DEBUG_PRINTLN("Short write during file copy (filesystem full?)");
+            srcFile.close();
+            destFile.close();
+            LittleFS.remove(destPath);  // truncated dest is worse than no dest
+            return false;
+        }
     }
 
     srcFile.close();
@@ -54,10 +60,14 @@ bool copyFile(const char* srcPath, const char* destPath) {
     return true;
 }
 
-void SettingsManager_::factoryReset() {
-    copyFile(CONFIG_JSON_FACTORY, CONFIG_JSON);
+bool SettingsManager_::factoryReset() {
+    if (!copyFile(CONFIG_JSON_FACTORY, CONFIG_JSON)) {
+        DEBUG_PRINTLN("factoryReset: copyFile failed; not restarting (would loop)");
+        return false;
+    }
     LittleFS.end();
     ESP.restart();
+    return true;  // unreachable
 }
 
 JsonDocument* SettingsManager_::readConfigJsonFile() {
@@ -81,10 +91,13 @@ JsonDocument* SettingsManager_::readConfigJsonFile() {
         }
         return doc;
     } else {
-        // First boot (or post-uploadfs): config.json is gitignored and not shipped in data/.
-        // Bootstrap by copying config_initial.json → config.json, then restart so the next
-        // boot loads the freshly created file. Restoring the upstream auto-recovery path that
-        // was inadvertently dropped on this fork — without it, a fresh FS upload bricks setup.
+        // config.json is gitignored and not shipped in data/, so a fresh FS (first boot
+        // or post-uploadfs) won't have it. Bootstrap by copying config_initial.json →
+        // config.json and restarting; on the next boot the file exists and load succeeds.
+        // factoryReset() now returns false instead of restarting if the copy fails — that
+        // prevents an infinite bootstrap loop on a full/corrupt FS, but it also means the
+        // caller (loadSettingsFromFile) will surface "Error loading software" on the
+        // display, which is the correct user-facing signal.
         DEBUG_PRINTLN("Cannot read configuration file — config.json missing, bootstrapping");
         factoryReset();
         return NULL;
