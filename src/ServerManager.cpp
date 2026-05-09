@@ -264,7 +264,13 @@ IPAddress ServerManager_::startWifi() {
 
     ip = setAPmode(getHostname(), AP_MODE_PASSWORD);
     this->isInAPMode = true;
-    WiFi.begin();
+    // Disable STA reconnect storm while in AP mode. WiFi.begin() with no args
+    // retries cached NVS credentials every ~3s; on the ESP32's single radio
+    // those scans suppress AP beacons so clients can't see "nsclock" in their
+    // network list. The user will configure Wi-Fi via the captive portal and
+    // the device restarts to apply, so we don't need background STA retries.
+    WiFi.disconnect(true, true);
+    WiFi.mode(WIFI_AP);
     return ip;
 }
 
