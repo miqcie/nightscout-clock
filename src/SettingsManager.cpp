@@ -83,13 +83,27 @@ bool SettingsManager_::saveCredentialsToNVS() {
 
     String data_source = "no_source";
     switch (settings.bg_source) {
-        case BG_SOURCE::NIGHTSCOUT: data_source = "nightscout"; break;
-        case BG_SOURCE::DEXCOM: data_source = "dexcom"; break;
-        case BG_SOURCE::MEDTRONIC: data_source = "medtronic"; break;
-        case BG_SOURCE::API: data_source = "api"; break;
-        case BG_SOURCE::LIBRELINKUP: data_source = "librelinkup"; break;
-        case BG_SOURCE::MEDTRUM: data_source = "medtrum"; break;
-        default: data_source = "no_source"; break;
+        case BG_SOURCE::NIGHTSCOUT:
+            data_source = "nightscout";
+            break;
+        case BG_SOURCE::DEXCOM:
+            data_source = "dexcom";
+            break;
+        case BG_SOURCE::MEDTRONIC:
+            data_source = "medtronic";
+            break;
+        case BG_SOURCE::API:
+            data_source = "api";
+            break;
+        case BG_SOURCE::LIBRELINKUP:
+            data_source = "librelinkup";
+            break;
+        case BG_SOURCE::MEDTRUM:
+            data_source = "medtrum";
+            break;
+        default:
+            data_source = "no_source";
+            break;
     }
     nvsPrefs.putString("data_src", data_source);
 
@@ -97,10 +111,18 @@ bool SettingsManager_::saveCredentialsToNVS() {
     nvsPrefs.putString("dex_pass", settings.dexcom_password);
     String dexServer = "ous";
     switch (settings.dexcom_server) {
-        case DEXCOM_SERVER::US: dexServer = "us"; break;
-        case DEXCOM_SERVER::NON_US: dexServer = "ous"; break;
-        case DEXCOM_SERVER::JAPAN: dexServer = "jp"; break;
-        default: dexServer = "ous"; break;
+        case DEXCOM_SERVER::US:
+            dexServer = "us";
+            break;
+        case DEXCOM_SERVER::NON_US:
+            dexServer = "ous";
+            break;
+        case DEXCOM_SERVER::JAPAN:
+            dexServer = "jp";
+            break;
+        default:
+            dexServer = "ous";
+            break;
     }
     nvsPrefs.putString("dex_server", dexServer);
 
