@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <LittleFS.h>
+#include <Preferences.h>
 
 #include "globals.h"
 
@@ -61,6 +62,7 @@ bool copyFile(const char* srcPath, const char* destPath) {
 }
 
 bool SettingsManager_::factoryReset() {
+    clearNVS();
     if (!copyFile(CONFIG_JSON_FACTORY, CONFIG_JSON)) {
         DEBUG_PRINTLN("factoryReset: copyFile failed; not restarting (would loop)");
         return false;
@@ -68,6 +70,192 @@ bool SettingsManager_::factoryReset() {
     LittleFS.end();
     ESP.restart();
     return true;  // unreachable
+}
+
+bool SettingsManager_::saveCredentialsToNVS() {
+    if (!nvsPrefs.begin("nsclock", false)) {
+        DEBUG_PRINTLN("Failed to open NVS for writing");
+        return false;
+    }
+
+    nvsPrefs.putString("ssid", settings.ssid);
+    nvsPrefs.putString("wifi_pass", settings.wifi_password);
+
+    String data_source = "no_source";
+    switch (settings.bg_source) {
+        case BG_SOURCE::NIGHTSCOUT:
+            data_source = "nightscout";
+            break;
+        case BG_SOURCE::DEXCOM:
+            data_source = "dexcom";
+            break;
+        case BG_SOURCE::MEDTRONIC:
+            data_source = "medtronic";
+            break;
+        case BG_SOURCE::API:
+            data_source = "api";
+            break;
+        case BG_SOURCE::LIBRELINKUP:
+            data_source = "librelinkup";
+            break;
+        case BG_SOURCE::MEDTRUM:
+            data_source = "medtrum";
+            break;
+        default:
+            data_source = "no_source";
+            break;
+    }
+    nvsPrefs.putString("data_src", data_source);
+
+    nvsPrefs.putString("dex_user", settings.dexcom_username);
+    nvsPrefs.putString("dex_pass", settings.dexcom_password);
+    String dexServer = "ous";
+    switch (settings.dexcom_server) {
+        case DEXCOM_SERVER::US:
+            dexServer = "us";
+            break;
+        case DEXCOM_SERVER::NON_US:
+            dexServer = "ous";
+            break;
+        case DEXCOM_SERVER::JAPAN:
+            dexServer = "jp";
+            break;
+        default:
+            dexServer = "ous";
+            break;
+    }
+    nvsPrefs.putString("dex_server", dexServer);
+
+    nvsPrefs.putString("ns_url", settings.nightscout_url);
+    nvsPrefs.putString("ns_api_key", settings.nightscout_api_key);
+
+    nvsPrefs.putString("ll_email", settings.librelinkup_email);
+    nvsPrefs.putString("ll_pass", settings.librelinkup_password);
+    nvsPrefs.putString("ll_region", settings.librelinkup_region);
+
+    nvsPrefs.putString("med_email", settings.medtrum_email);
+    nvsPrefs.putString("med_pass", settings.medtrum_password);
+
+    nvsPrefs.putString("tz_libc", settings.tz_libc_value);
+
+    nvsPrefs.putBool("add_wifi_en", settings.additional_wifi_enable);
+    nvsPrefs.putString("add_wifi_ssid", settings.additional_wifi_ssid);
+    nvsPrefs.putString("add_wifi_pass", settings.additional_wifi_password);
+
+    nvsPrefs.end();
+    DEBUG_PRINTLN("Credentials backed up to NVS");
+    return true;
+}
+
+bool SettingsManager_::loadCredentialsFromNVS() {
+    if (!nvsPrefs.begin("nsclock", true)) {
+        DEBUG_PRINTLN("Failed to open NVS for reading");
+        return false;
+    }
+
+    String ssid = nvsPrefs.getString("ssid", "");
+    if (ssid.length() == 0) {
+        DEBUG_PRINTLN("NVS has no saved credentials");
+        nvsPrefs.end();
+        return false;
+    }
+
+    settings.ssid = ssid;
+    settings.wifi_password = nvsPrefs.getString("wifi_pass", "");
+
+    String data_source = nvsPrefs.getString("data_src", "no_source");
+    if (data_source == "nightscout") {
+        settings.bg_source = BG_SOURCE::NIGHTSCOUT;
+    } else if (data_source == "dexcom") {
+        settings.bg_source = BG_SOURCE::DEXCOM;
+    } else if (data_source == "medtronic") {
+        settings.bg_source = BG_SOURCE::MEDTRONIC;
+    } else if (data_source == "api") {
+        settings.bg_source = BG_SOURCE::API;
+    } else if (data_source == "librelinkup") {
+        settings.bg_source = BG_SOURCE::LIBRELINKUP;
+    } else if (data_source == "medtrum") {
+        settings.bg_source = BG_SOURCE::MEDTRUM;
+    } else {
+        settings.bg_source = BG_SOURCE::NO_SOURCE;
+    }
+
+    settings.dexcom_username = nvsPrefs.getString("dex_user", "");
+    settings.dexcom_password = nvsPrefs.getString("dex_pass", "");
+    String dexServer = nvsPrefs.getString("dex_server", "ous");
+    if (dexServer == "us") {
+        settings.dexcom_server = DEXCOM_SERVER::US;
+    } else if (dexServer == "ous") {
+        settings.dexcom_server = DEXCOM_SERVER::NON_US;
+    } else if (dexServer == "jp") {
+        settings.dexcom_server = DEXCOM_SERVER::JAPAN;
+    } else {
+        settings.dexcom_server = DEXCOM_SERVER::NON_US;
+    }
+
+    settings.nightscout_url = nvsPrefs.getString("ns_url", "");
+    settings.nightscout_api_key = nvsPrefs.getString("ns_api_key", "");
+
+    settings.librelinkup_email = nvsPrefs.getString("ll_email", "");
+    settings.librelinkup_password = nvsPrefs.getString("ll_pass", "");
+    settings.librelinkup_region = nvsPrefs.getString("ll_region", "");
+
+    settings.medtrum_email = nvsPrefs.getString("med_email", "");
+    settings.medtrum_password = nvsPrefs.getString("med_pass", "");
+
+    settings.tz_libc_value = nvsPrefs.getString("tz_libc", "");
+
+    settings.additional_wifi_enable = nvsPrefs.getBool("add_wifi_en", false);
+    settings.additional_wifi_ssid = nvsPrefs.getString("add_wifi_ssid", "");
+    settings.additional_wifi_password = nvsPrefs.getString("add_wifi_pass", "");
+
+    nvsPrefs.end();
+    DEBUG_PRINTLN("Credentials restored from NVS");
+    return true;
+}
+
+bool SettingsManager_::restoreConfigFromNVS() {
+    DEBUG_PRINTLN("Attempting to restore config from NVS backup...");
+
+    if (!copyFile(CONFIG_JSON_FACTORY, CONFIG_JSON)) {
+        DEBUG_PRINTLN("Failed to copy factory config template");
+        return false;
+    }
+
+    if (!loadSettingsFromFile()) {
+        DEBUG_PRINTLN("Failed to load factory config");
+        return false;
+    }
+
+    if (!loadCredentialsFromNVS()) {
+        DEBUG_PRINTLN("No credentials found in NVS backup");
+        return false;
+    }
+
+    if (!saveSettingsToFile()) {
+        DEBUG_PRINTLN("Failed to save restored config to file");
+        return false;
+    }
+
+    DEBUG_PRINTLN("Config successfully restored from NVS backup");
+    return true;
+}
+
+bool SettingsManager_::recreateDefaultConfig() {
+    DEBUG_PRINTLN("Recreating default config from factory template...");
+    if (!copyFile(CONFIG_JSON_FACTORY, CONFIG_JSON)) {
+        DEBUG_PRINTLN("Failed to copy factory config template");
+        return false;
+    }
+    return loadSettingsFromFile();
+}
+
+void SettingsManager_::clearNVS() {
+    if (nvsPrefs.begin("nsclock", false)) {
+        nvsPrefs.clear();
+        nvsPrefs.end();
+        DEBUG_PRINTLN("NVS credentials cleared");
+    }
 }
 
 JsonDocument* SettingsManager_::readConfigJsonFile() {
@@ -451,6 +639,8 @@ bool SettingsManager_::saveSettingsToFile() {
         return false;
 
     delete doc;
+
+    saveCredentialsToNVS();
 
     return true;
 }

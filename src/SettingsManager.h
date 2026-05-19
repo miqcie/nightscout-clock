@@ -3,6 +3,7 @@
 
 #include <ArduinoJson.h>
 #include <IPAddress.h>
+#include <Preferences.h>
 #include <Settings.h>
 
 #include "enums.h"
@@ -12,6 +13,9 @@ private:
     SettingsManager_() = default;
     JsonDocument* readConfigJsonFile();
     void validateLoadedSettings(Settings& s);
+    Preferences nvsPrefs;
+    bool saveCredentialsToNVS();
+    bool loadCredentialsFromNVS();
 
 public:
     static SettingsManager_& getInstance();
@@ -20,6 +24,9 @@ public:
     bool saveSettingsToFile();
     bool trySaveJsonAsSettings(const JsonDocument& doc);
     bool factoryReset();
+    bool restoreConfigFromNVS();
+    bool recreateDefaultConfig();
+    void clearNVS();
 
     Settings settings;
 };
