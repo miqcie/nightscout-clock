@@ -6,16 +6,27 @@
 
 #include "SettingsManager.h"
 
+// An override is only honored when it is a real value: non-empty and not the
+// literal string "null". ArduinoJson v7's .as<String>() yields "null" (4 chars)
+// for a missing or null key, so a fresh device with no override configured would
+// otherwise send "null" to Dexcom as the applicationId and get back a
+// 500 InvalidArgument ("Cannot deserialize value of type java.util.UUID from
+// String 'null'"). See issue #51. Keep this in sync with the host-side mirror
+// in test/test_native/dexcom_appid.h.
+static bool isUsableApplicationIdOverride(const String& value) {
+    return value.length() > 0 && value != "null";
+}
+
 // Resolve which Dexcom Share applicationId to send. The hardcoded values are the Follow
 // app's ids; if Dexcom rotates them, the user can drop a replacement into config.json
 // (dexcom_application_id / dexcom_application_id_japan) without reflashing firmware.
 static String resolveDexcomApplicationId(DEXCOM_SERVER server) {
     if (server == DEXCOM_SERVER::JAPAN) {
         const String& jp = SettingsManager.settings.dexcom_application_id_japan;
-        return jp.length() > 0 ? jp : String(DEXCOM_APPLICATION_ID_JAPAN);
+        return isUsableApplicationIdOverride(jp) ? jp : String(DEXCOM_APPLICATION_ID_JAPAN);
     }
     const String& us = SettingsManager.settings.dexcom_application_id;
-    return us.length() > 0 ? us : String(DEXCOM_APPLICATION_ID);
+    return isUsableApplicationIdOverride(us) ? us : String(DEXCOM_APPLICATION_ID);
 }
 
 std::list<GlucoseReading> BGSourceDexcom::updateReadings(std::list<GlucoseReading> existingReadings) {

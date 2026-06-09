@@ -11,6 +11,8 @@
     "dexcom_username": "",
     "dexcom_password": "",
     "dexcom_server": "",
+    "dexcom_application_id": "",
+    "dexcom_application_id_japan": "",
     "nightscout_url": "",
     "nightscout_simplified_api": false,
     "api_secret": "",

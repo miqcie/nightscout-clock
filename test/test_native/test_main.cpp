@@ -18,6 +18,7 @@ void tearDown(void) {}
 // Forward declarations for suites defined in sibling .cpp files.
 void register_bg_trend_tests(void);
 void register_nightscout_parser_tests(void);
+void register_dexcom_appid_tests(void);
 
 static void test_mgdl_to_mmol_basic(void) {
     // Standard conversion factor is 18.0 mg/dL per mmol/L.
@@ -48,5 +49,6 @@ int main(int, char**) {
     RUN_TEST(test_round_trip_is_stable);
     register_bg_trend_tests();
     register_nightscout_parser_tests();
+    register_dexcom_appid_tests();
     return UNITY_END();
 }
